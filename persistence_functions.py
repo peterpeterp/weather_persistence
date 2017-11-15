@@ -40,9 +40,9 @@ def optimized_period_identifier(ind):
 		return pers
 
 	for cut_stop in cuts:
-		if cut_start==cut_stop: 
+		if cut_start==cut_stop:
 			cut_start=cut_stop+1
-		else:	
+		else:
 			ind_cut=ind[cut_start:cut_stop]
 			pers_cut=ind_cut.copy()*0
 
@@ -93,7 +93,6 @@ def test_persistence(N):
 	print(period_identifier(ind)[0:100])
 	print("--- basic_and_understandable %s seconds ---" % (time.time() - start_time))
 
-	
 	start_time = time.time()
 	print(optimized_period_identifier(ind)[0:100])
 	print("--- optimized_period_identifier %s seconds ---" % (time.time() - start_time))
@@ -122,7 +121,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 
 	period_number=[]
 	for y in range(state.shape[1]):
-		for x in range(state.shape[2]):	
+		for x in range(state.shape[2]):
 			periods=optimized_period_identifier(state[:,y,x].copy())
 
 			identified_periods=np.where(periods!=0)[0]
@@ -138,7 +137,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 
 	if overwrite: os.system('rm '+out_file)
 	nc_out=Dataset(out_file,'w')
-	for dname, the_dim in nc_in.dimensions.iteritems():	
+	for dname, the_dim in nc_in.dimensions.iteritems():
 		if dname in ['lon','lat']:nc_out.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
 	nc_out.createDimension('period_id', per_num)
 
@@ -194,7 +193,7 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 			outVar = nc_out.createVariable(v_name, varin.datatype, varin.dimensions)
 			outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
 			outVar[:] = varin[:]
-		else: 
+		else:
 			outVar = nc_out.createVariable('state','i1',('time','lat','lon',))
 			outVar.description='daily anomalies - seasonal medain of daily anomalies at grid cell level. positive anomalies -> 1 negative anomalies -> -1'
 			outVar[:] = anom
@@ -208,7 +207,7 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 	anom=np.ma.getdata(nc_in.variables[var_name][:,:,:])*unit_multiplier
 	mask=np.ma.getmask(nc_in.variables[var_name][:,:,:])
 	anom[mask]=np.nan
-	
+
 
 	anom[anom>=threshold] = 1
 	anom[anom<threshold] = -1
@@ -222,27 +221,10 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 			outVar = nc_out.createVariable(v_name, varin.datatype, varin.dimensions)
 			outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
 			outVar[:] = varin[:]
-		else: 
+		else:
 			outVar = nc_out.createVariable('state','i1',('time','lat','lon',),fill_value=2)
 			outVar.description='dry (wet) days are days with precipiation below (above) '+str(threshold)+' and are saved as -1 (1)'
 			outVar[:] = anom
 
 	nc_out.close()
 	nc_in.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -8,11 +8,10 @@ from lmfit import  Model
 import pandas as pd
 
 # ---------- Counter Conversion ------------------------
-
 def counter_to_list(counter):
 	tmp=[]
 	lengths=counter.keys()
-	if 0 in lengths: 
+	if 0 in lengths:
 		lengths.remove(0)
 	if len(lengths)>2:
 		for key in lengths:
@@ -20,7 +19,7 @@ def counter_to_list(counter):
 				tmp.append(key)
 		tmp=np.array(tmp)
 		return -tmp[tmp<0],tmp[tmp>0]
-	else: 
+	else:
 		return [],[]
 
 
@@ -29,7 +28,7 @@ def counter_to_pers(counter,state):
 	pers_tmp=np.array(range(1,max([state*key+1 for key in counter.keys()])))
 	count,pers=[],[]
 	for pp,i in zip(pers_tmp,range(len(pers_tmp))):
-		if pp*state in counter.keys(): 
+		if pp*state in counter.keys():
 			if abs(pp*state)!=0:
 				count.append(counter[pp*state])
 				pers.append(pp)
@@ -44,7 +43,7 @@ def double_exp(x,a1,b1,b2,thr):
 	y=x.copy()*np.nan
 	y[x<=thr]	=	a1*np.exp(-b1*x[x<=thr])
 	y[x>thr]	=	a1*np.exp((b2-b1)*thr)*np.exp(-b2*(x[x>thr]))
-	return y 
+	return y
 
 def single_exp(x,a1,b1):
 	x=np.array(x)
@@ -54,7 +53,7 @@ def two_exp(x,a1,b1,a2,b2):
 	x=np.array(x)
 	y=x.copy()*np.nan
 	y	=	a1*np.exp(-b1*x)+a2*np.exp(-b2*x)
-	return y 
+	return y
 
 def all_fits(count,pers,plot=False,subax=None,do_two_expo=False):
 	tmp={}
@@ -81,7 +80,7 @@ def all_fits(count,pers,plot=False,subax=None,do_two_expo=False):
 		doubleM.set_param_hint('thr', value=popt_[3],vary=False)
 		result = doubleM.fit(count[2::], x=pers[2::])
 		tmp['double_exp']={'bic':result.bic,'params':result.best_values,'best_fit':result.best_fit}
-	except Exception,e: 
+	except Exception,e:
 		tmp['double_exp']={'bic':None,'params':{'a1':np.nan,'b1':np.nan,'b2':np.nan,'thr':np.nan},'best_fit':None}
 
 	if do_two_expo:
@@ -94,7 +93,7 @@ def all_fits(count,pers,plot=False,subax=None,do_two_expo=False):
 			doubleM.set_param_hint('b2', value=popt_[3],vary=False)
 			result = doubleM.fit(count[2::], x=pers[2::])
 			tmp['two_exp']={'bic':result.bic,'params':result.best_values,'best_fit':result.best_fit}
-		except Exception,e: 
+		except Exception,e:
 			tmp['two_exp']={'bic':None,'params':{'a1':np.nan,'b1':np.nan,'a2':np.nan,'b2':np.nan},'best_fit':None}
 
 	if plot:
@@ -113,6 +112,3 @@ def all_fits(count,pers,plot=False,subax=None,do_two_expo=False):
 # ax_big=fig.add_axes([0,0,1,1])
 # all_fits(region_dict['NAS']['DJF']['cold']['count'],region_dict['NAS']['DJF']['cold']['pers'],plot=True,subax=ax_big)
 # plt.savefig('plots/NAS.png')
-
-
-
