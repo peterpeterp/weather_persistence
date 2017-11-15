@@ -17,7 +17,6 @@ def summer_period_analysis(np.ndarray[np_int_t, ndim=3] per_len, np.ndarray[np_i
           events_in_loc[y,x]+=1
 
   cdef int Ni_new = np.max(events_in_loc)
-  print Ni_new
 
   cdef np.ndarray[np_int_t, ndim=3] hot_shift = np.zeros([Ni_new,Ny,Nx], dtype=np.int32)
   cdef np.ndarray[np_float_t, ndim=3] hot_temp = np.zeros([Ni_new,Ny,Nx], dtype=np.float64)
