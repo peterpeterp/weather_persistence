@@ -99,7 +99,7 @@ def test_persistence(N):
 
 #test_persistence(100)
 
-def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
+def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True,EKE=None,SPI=None):
 
 	nc_in=Dataset(state_file,'r')
 	# handle time
@@ -119,6 +119,12 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	period_midpoints=state.copy()*np.nan
 	period_season=state.copy()*np.nan
 
+	if EKE is not None:
+		period_eke=state.copy()*np.nan
+
+	if SPI is not None:
+		period_spi=state.copy()*np.nan
+
 	period_number=[]
 	for y in range(state.shape[1]):
 		for x in range(state.shape[2]):
@@ -132,6 +138,10 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 			period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
 			period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
 			period_season[0:per_num,y,x]=season[identified_periods]
+			if EKE is not None:
+				period_eke[0:per_num,y,x]=EKE[time_axis[identified_periods],y,x]
+			if SPI is not None:
+				period_spi[0:per_num,y,x]=SPI[time_axis[identified_periods],y,x]
 
 	per_num=max(period_number)
 
@@ -158,6 +168,16 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	outVar = nc_out.createVariable('period_midpoints','f',('period_id','lat','lon',))
 	outVar.long_name='midpoint of period'
 	outVar[:] = period_midpoints[0:per_num,:,:]
+
+	if EKE is not None:
+		outVar = nc_out.createVariable('period_eke','f',('period_id','lat','lon',))
+		outVar.long_name='monthly EKE of period midpoint'
+		outVar[:] = period_eke[0:per_num,:,:]
+
+	if SPI is not None:
+		outVar = nc_out.createVariable('period_eke','f',('period_id','lat','lon',))
+		outVar.long_name='monthly SPI of period midpoint'
+		outVar[:] = period_spi[0:per_num,:,:]
 
 	outVar = nc_out.createVariable('period_season','i1',('period_id','lat','lon',))
 	outVar.long_name='season in which the midpoint of period is located'
