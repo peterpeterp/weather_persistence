@@ -113,7 +113,6 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 		season[np.where((month==seasons[sea]['months'][0]) | (month==seasons[sea]['months'][1]) | (month==seasons[sea]['months'][2]) )[0]]=seasons[sea]['index']
 
 	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
-	print(monthly_index[0:400])
 
 	state=nc_in.variables['state'][:,:,:]
 
@@ -144,8 +143,8 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 			period_season[0:per_num,y,x]=season[identified_periods]
 			if EKE is not None:
 				period_eke[0:per_num,y,x]=EKE[monthly_index[identified_periods],y,x]
-			# if SPI is not None:
-			# 	period_spi[0:per_num,y,x]=SPI[time_axis[identified_periods],y,x]
+			if SPI is not None:
+				period_spi[0:per_num,y,x]=SPI[monthly_index[identified_periods],y,x]
 
 	per_num=max(period_number)
 
