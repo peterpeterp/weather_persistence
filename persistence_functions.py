@@ -178,7 +178,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 		outVar[:] = period_eke[0:per_num,:,:]
 
 	if SPI is not None:
-		outVar = nc_out.createVariable('period_spi,'f',('period_id','lat','lon',))
+		outVar = nc_out.createVariable('period_spi','f',('period_id','lat','lon',))
 		outVar.long_name='monthly SPI of period midpoint'
 		outVar[:] = period_spi[0:per_num,:,:]
 
