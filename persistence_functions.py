@@ -113,8 +113,9 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	for sea in seasons.keys():
 		season[np.where((month==seasons[sea]['months'][0]) | (month==seasons[sea]['months'][1]) | (month==seasons[sea]['months'][2]) )[0]]=seasons[sea]['index']
 
-	#monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
+	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
 	mon_year_axis=np.array([yr+mn*0.01 for yr,mn in zip(year,month)])
+	print(len(monthly_index))
 
 	state=nc_in.variables['state'][:,:,:]
 
@@ -127,36 +128,38 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	if eke_file is not None:
 		eke=da.read_nc(eke_file)
 		datevar = num2date(eke['time'].values,units = eke['time'].attrs['units'],calendar = eke['time'].attrs['calendar'])
-		month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
-		year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-		EKE=da.DimArray(axes=[np.unique(mon_year_axis),eke['lat'].values,eke['lon'].values],dims=['time','lat','lon'])
-		for my_i in np.unique(mon_year_axis):
-			yr=int(my_i)
-			mth=int((my_i-yr)*100)+1
-			index=np.where((month==mth) & (year==yr))[0]
-			if len(index)==1:
-				EKE[my_i,:,:]=eke['EKE'].values.squeeze()[index,:,:]
+		month_eke=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
+		year_eke=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
+		EKE=np.zeros([120,eke['lat'].values.shape,eke['lon'].values.shape])
+		i=0
+		for yr in np.unique(year):
+			for mn in np.unique(month):
+				index=np.where((yr==year_eke) & (mn==month_eke))[0]
+				if len(index)==1:
+					EKE[i,:,:]=eke['EKE'].values.squeeze()[index,:,:]
+				i+=1
+
 		period_eke=state.copy()*np.nan
 		print(EKE.shape)
 
-	if spi_file is not None:
-		spi=da.read_nc(spi_file)
-		if 'calendar' in spi['time'].attrs.keys():
-			calendar=spi['time'].attrs['calendar']
-		else:
-			calendar='365_day'
-		datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = calendar)
-		month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
-		year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-		SPI=da.DimArray(axes=[np.unique(mon_year_axis),spi['lat'].values,spi['lon'].values],dims=['time','lat','lon'])
-		for my_i in np.unique(mon_year_axis):
-			yr=int(my_i)
-			mth=int((my_i-yr)*100)+1
-			index=np.where((month==mth) & (year==yr))[0]
-			if len(index)==1:
-				SPI[my_i,:,:]=spi['SPI'].values.squeeze()[index,:,:]
-		period_spi=state.copy()*np.nan
-		print(SPI.shape)
+	# if spi_file is not None:
+	# 	spi=da.read_nc(spi_file)
+	# 	if 'calendar' in spi['time'].attrs.keys():
+	# 		calendar=spi['time'].attrs['calendar']
+	# 	else:
+	# 		calendar='365_day'
+	# 	datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = calendar)
+	# 	month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
+	# 	year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
+	# 	SPI=da.DimArray(axes=[np.unique(mon_year_axis),spi['lat'].values,spi['lon'].values],dims=['time','lat','lon'])
+	# 	for my_i in np.unique(mon_year_axis):
+	# 		yr=int(my_i)
+	# 		mth=int((my_i-yr)*100)+1
+	# 		index=np.where((month==mth) & (year==yr))[0]
+	# 		if len(index)==1:
+	# 			SPI[my_i,:,:]=spi['SPI'].values.squeeze()[index,:,:]
+	# 	period_spi=state.copy()*np.nan
+	# 	print(SPI.shape)
 
 	period_number=[]
 	for y in range(state.shape[1]):
@@ -176,7 +179,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 			period_season[0:per_num,y,x]=season[identified_periods]
 			print(time.time()-start_time)
 			if eke_file is not None:
-				period_eke[0:per_num,y,x]=EKE[mon_year_axis[identified_periods],:,:].ix[:,y,x]
+				period_eke[0:per_num,y,x]=EKE[monthly_index[identified_periods],y,x]
 			print(time.time()-start_time)
 			if spi_file is not None:
 				period_spi[0:per_num,y,x]=SPI[mon_year_axis[identified_periods],:,:].ix[:,y,x]
