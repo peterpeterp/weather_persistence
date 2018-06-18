@@ -144,7 +144,11 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 
 	if spi_file is not None:
 		spi=da.read_nc(spi_file)
-		datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = spi['time'].attrs['calendar'])
+		if 'calendar' in spi['time'].attrs.keys():
+			calendar=spi['time'].attrs['calendar']
+		else:
+			calendar='365_day'
+		datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = calendar)
 		month_spi=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
 		year_spi=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
 		SPI=np.zeros([120,len(spi['lat'].values),len(spi['lon'].values)])
