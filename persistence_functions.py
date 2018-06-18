@@ -2,6 +2,7 @@ import os,sys,glob,time,collections
 import numpy as np
 from netCDF4 import Dataset,netcdftime,num2date
 import random as random
+import dimarray as da
 
 
 def period_identifier(ind):
@@ -99,7 +100,7 @@ def test_persistence(N):
 
 #test_persistence(100)
 
-def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True,EKE=None,SPI=None):
+def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True,eke_file=None,spi_file=None):
 
 	nc_in=Dataset(state_file,'r')
 	# handle time
@@ -112,7 +113,8 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	for sea in seasons.keys():
 		season[np.where((month==seasons[sea]['months'][0]) | (month==seasons[sea]['months'][1]) | (month==seasons[sea]['months'][2]) )[0]]=seasons[sea]['index']
 
-	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
+	#monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
+	mon_year_axis=[yr+mn*0.01 for yr,mn in zip(year,month)]
 
 	state=nc_in.variables['state'][:,:,:]
 
@@ -122,10 +124,32 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	period_midpoints=state.copy()*np.nan
 	period_season=state.copy()*np.nan
 
-	if EKE is not None:
+	if eke_file is not None:
+		eke=da.read_nc(eke_file)
+		datevar = num2date(eke['time'].values,units = eke['time'].attrs['units'],calendar = eke['time'].attrs['calendar'])
+		month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
+		year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
+		EKE=da.DimArray(axes=[mon_year_axis,eke['lat'].values,eke['lon'].values],dims=['time','lat','lon'])
+		for my_i in mon_year_axis:
+			yr=int(my_i)
+			mth=int((my_i-yr)*100)+1
+			index=np.where((month==mth) & (year==yr))[0]
+			if len(index)==1:
+				EKE[my_i,:,:]=eke['EKE'].values.squeeze()[index,:,:]
 		period_eke=state.copy()*np.nan
 
-	if SPI is not None:
+	if spi_file is not None:
+		spi=da.read_nc(spi_file)
+		datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = spi['time'].attrs['calendar'])
+		month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
+		year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
+		SPI=da.DimArray(axes=[mon_year_axis,spi['lat'].values,spi['lon'].values],dims=['time','lat','lon'])
+		for my_i in mon_year_axis:
+			yr=int(my_i)
+			mth=int((my_i-yr)*100)+1
+			index=np.where((month==mth) & (year==yr))[0]
+			if len(index)==1:
+				SPI[my_i,:,:]=spi['SPI'].values.squeeze()[index,:,:]
 		period_spi=state.copy()*np.nan
 
 	period_number=[]
@@ -141,10 +165,10 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 			period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
 			period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
 			period_season[0:per_num,y,x]=season[identified_periods]
-			if EKE is not None:
-				period_eke[0:per_num,y,x]=EKE[monthly_index[identified_periods],y,x]
-			if SPI is not None:
-				period_spi[0:per_num,y,x]=SPI[monthly_index[identified_periods],y,x]
+			if eke_file is not None:
+				period_eke[0:per_num,y,x]=EKE[mon_year_axis[identified_periods],y,x]
+			if spi_file is not None:
+				period_spi[0:per_num,y,x]=SPI[mon_year_axis[identified_periods],y,x]
 
 	per_num=max(period_number)
 
