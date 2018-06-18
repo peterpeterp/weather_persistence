@@ -129,7 +129,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 		datevar = num2date(eke['time'].values,units = eke['time'].attrs['units'],calendar = eke['time'].attrs['calendar'])
 		month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
 		year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-		EKE=da.DimArray(axes=[mon_year_axis,eke['lat'].values,eke['lon'].values],dims=['time','lat','lon'])
+		EKE=da.DimArray(axes=[np.unique(mon_year_axis),eke['lat'].values,eke['lon'].values],dims=['time','lat','lon'])
 		for my_i in mon_year_axis:
 			yr=int(my_i)
 			mth=int((my_i-yr)*100)+1
@@ -147,7 +147,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 		datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = calendar)
 		month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
 		year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-		SPI=da.DimArray(axes=[mon_year_axis,spi['lat'].values,spi['lon'].values],dims=['time','lat','lon'])
+		SPI=da.DimArray(axes=[np.unique(mon_year_axis),spi['lat'].values,spi['lon'].values],dims=['time','lat','lon'])
 		for my_i in mon_year_axis:
 			yr=int(my_i)
 			mth=int((my_i-yr)*100)+1
@@ -158,7 +158,6 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 
 	period_number=[]
 	for y in range(state.shape[1]):
-		print(y)
 		for x in range(state.shape[2]):
 			periods=optimized_period_identifier(state[:,y,x].copy())
 
