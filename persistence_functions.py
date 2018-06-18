@@ -114,7 +114,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 		season[np.where((month==seasons[sea]['months'][0]) | (month==seasons[sea]['months'][1]) | (month==seasons[sea]['months'][2]) )[0]]=seasons[sea]['index']
 
 	#monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
-	mon_year_axis=[yr+mn*0.01 for yr,mn in zip(year,month)]
+	mon_year_axis=np.array([yr+mn*0.01 for yr,mn in zip(year,month)])
 
 	state=nc_in.variables['state'][:,:,:]
 
