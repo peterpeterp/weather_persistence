@@ -175,9 +175,9 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 				print(EKE)
 				print(EKE.values.shape)
 				print(period_eke.shape)
-				period_eke[0:per_num,y,x]=EKE[mon_year_axis[identified_periods],:,:].ix[y,x]
+				period_eke[0:per_num,y,x]=EKE[mon_year_axis[identified_periods],:,:].ix[:,y,x]
 			if spi_file is not None:
-				period_spi[0:per_num,y,x]=SPI[mon_year_axis[identified_periods],:,:].ix[y,x]
+				period_spi[0:per_num,y,x]=SPI[mon_year_axis[identified_periods],:,:].ix[:,y,x]
 
 	per_num=max(period_number)
 
