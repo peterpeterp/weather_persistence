@@ -142,30 +142,27 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 		period_eke=state.copy()*np.nan
 		print(EKE.shape)
 
-	# if spi_file is not None:
-	# 	spi=da.read_nc(spi_file)
-	# 	if 'calendar' in spi['time'].attrs.keys():
-	# 		calendar=spi['time'].attrs['calendar']
-	# 	else:
-	# 		calendar='365_day'
-	# 	datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = calendar)
-	# 	month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
-	# 	year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-	# 	SPI=da.DimArray(axes=[np.unique(mon_year_axis),spi['lat'].values,spi['lon'].values],dims=['time','lat','lon'])
-	# 	for my_i in np.unique(mon_year_axis):
-	# 		yr=int(my_i)
-	# 		mth=int((my_i-yr)*100)+1
-	# 		index=np.where((month==mth) & (year==yr))[0]
-	# 		if len(index)==1:
-	# 			SPI[my_i,:,:]=spi['SPI'].values.squeeze()[index,:,:]
-	# 	period_spi=state.copy()*np.nan
-	# 	print(SPI.shape)
+	if spi_file is not None:
+		spi=da.read_nc(spi_file)
+		datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = spi['time'].attrs['calendar'])
+		month_spi=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
+		year_spi=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
+		SPI=np.zeros([120,len(spi['lat'].values),len(spi['lon'].values)])
+		i=0
+		for yr in np.unique(year):
+			for mn in np.unique(month):
+				index=np.where((yr==year_spi) & (mn==month_spi))[0]
+				if len(index)==1:
+					SPI[i,:,:]=spi['SPI'].values.squeeze()[index,:,:]
+				i+=1
+
+		period_spi=state.copy()*np.nan
+		print(SPI.shape)
 
 	period_number=[]
 	for y in range(state.shape[1]):
 		print(y)
 		for x in range(state.shape[2]):
-			print('----------')
 			start_time=time.time()
 			periods=optimized_period_identifier(state[:,y,x].copy())
 
@@ -177,13 +174,10 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 			period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
 			period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
 			period_season[0:per_num,y,x]=season[identified_periods]
-			print(time.time()-start_time)
 			if eke_file is not None:
 				period_eke[0:per_num,y,x]=EKE[monthly_index[identified_periods],y,x]
-			print(time.time()-start_time)
 			if spi_file is not None:
-				period_spi[0:per_num,y,x]=SPI[mon_year_axis[identified_periods],:,:].ix[:,y,x]
-			print(time.time()-start_time)
+				period_spi[0:per_num,y,x]=SPI[monthly_index[identified_periods],y,x]
 
 	per_num=max(period_number)
 
