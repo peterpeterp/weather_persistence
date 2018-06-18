@@ -158,6 +158,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 
 	period_number=[]
 	for y in range(state.shape[1]):
+		print(y)
 		for x in range(state.shape[2]):
 			periods=optimized_period_identifier(state[:,y,x].copy())
 
