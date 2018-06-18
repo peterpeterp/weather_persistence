@@ -130,7 +130,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 		datevar = num2date(eke['time'].values,units = eke['time'].attrs['units'],calendar = eke['time'].attrs['calendar'])
 		month_eke=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
 		year_eke=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-		EKE=np.zeros([120,eke['lat'].values.shape,eke['lon'].values.shape])
+		EKE=np.zeros([120,len(eke['lat'].values),len(eke['lon'].values)])
 		i=0
 		for yr in np.unique(year):
 			for mn in np.unique(month):
