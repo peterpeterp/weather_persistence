@@ -100,7 +100,7 @@ def test_persistence(N):
 
 #test_persistence(100)
 
-def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True,eke_file=None,spi_file=None):
+def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
 
 	nc_in=Dataset(state_file,'r')
 	# handle time
@@ -125,44 +125,6 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	period_midpoints=state.copy()*np.nan
 	period_season=state.copy()*np.nan
 
-	if eke_file is not None:
-		eke=da.read_nc(eke_file)
-		datevar = num2date(eke['time'].values,units = eke['time'].attrs['units'],calendar = eke['time'].attrs['calendar'])
-		month_eke=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
-		year_eke=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-		EKE=np.zeros([len(np.unique(year))*12,len(eke['lat'].values),len(eke['lon'].values)])
-		i=0
-		for yr in np.unique(year):
-			for mn in np.unique(month):
-				index=np.where((yr==year_eke) & (mn==month_eke))[0]
-				if len(index)==1:
-					EKE[i,:,:]=eke['EKE'].values.squeeze()[index,:,:]
-				i+=1
-
-		period_eke=state.copy()*np.nan
-		print(EKE.shape)
-
-	if spi_file is not None:
-		spi=da.read_nc(spi_file)
-		if 'calendar' in spi['time'].attrs.keys():
-			calendar=spi['time'].attrs['calendar']
-		else:
-			calendar='365_day'
-		datevar = num2date(spi['time'].values,units = spi['time'].attrs['units'],calendar = calendar)
-		month_spi=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
-		year_spi=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
-		SPI=np.zeros([len(np.unique(year))*12,len(spi['lat'].values),len(spi['lon'].values)])
-		i=0
-		for yr in np.unique(year):
-			for mn in np.unique(month):
-				index=np.where((yr==year_spi) & (mn==month_spi))[0]
-				if len(index)==1:
-					SPI[i,:,:]=spi['SPI'].values.squeeze()[index,:,:]
-				i+=1
-
-		period_spi=state.copy()*np.nan
-		print(SPI.shape)
-
 	period_number=[]
 	for y in range(state.shape[1]):
 		print(y)
@@ -178,10 +140,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 			period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
 			period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
 			period_season[0:per_num,y,x]=season[identified_periods]
-			if eke_file is not None:
-				period_eke[0:per_num,y,x]=EKE[monthly_index[identified_periods],y,x]
-			if spi_file is not None:
-				period_spi[0:per_num,y,x]=SPI[monthly_index[identified_periods],y,x]
+			period_eke[0:per_num,y,x]=monthly_index[identified_periods]
 
 	per_num=max(period_number)
 
@@ -209,15 +168,11 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	outVar.long_name='midpoint of period'
 	outVar[:] = period_midpoints[0:per_num,:,:]
 
-	if EKE is not None:
-		outVar = nc_out.createVariable('period_eke','f',('period_id','lat','lon',))
-		outVar.long_name='monthly EKE of period midpoint'
-		outVar[:] = period_eke[0:per_num,:,:]
-
-	if SPI is not None:
-		outVar = nc_out.createVariable('period_spi','f',('period_id','lat','lon',))
-		outVar.long_name='monthly SPI of period midpoint'
-		outVar[:] = period_spi[0:per_num,:,:]
+	outVar = nc_out.createVariable('period_monthly_index','i2',('period_id','lat','lon',))
+	outVar.long_name='monthly index 0 to number of years * 12'
+	outVar.first_time_step=str(year[0])+' - '+str(min(month))
+	outVar.last_time_step=str(year[-1])+' - '+str(max(month))
+	outVar[:] = period_monthly_index[0:per_num,:,:]
 
 	outVar = nc_out.createVariable('period_season','i1',('period_id','lat','lon',))
 	outVar.long_name='season in which the midpoint of period is located'
