@@ -124,7 +124,8 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	period_state=state.copy()*np.nan
 	period_midpoints=state.copy()*np.nan
 	period_season=state.copy()*np.nan
-
+	period_monthly_index=state.copy()*np.nan
+	
 	period_number=[]
 	for y in range(state.shape[1]):
 		print(y)
@@ -140,7 +141,7 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 			period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
 			period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
 			period_season[0:per_num,y,x]=season[identified_periods]
-			period_eke[0:per_num,y,x]=monthly_index[identified_periods]
+			period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
 
 	per_num=max(period_number)
 
