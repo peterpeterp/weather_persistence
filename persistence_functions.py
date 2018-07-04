@@ -130,17 +130,19 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	for y in range(state.shape[1]):
 		for x in range(state.shape[2]):
 			start_time=time.time()
-			periods=optimized_period_identifier(state[:,y,x].copy())
+			try:
+				periods=optimized_period_identifier(state[:,y,x].copy())
+				identified_periods=np.where(periods!=0)[0]
+				per_num=len(identified_periods)
+				period_number.append(per_num)
 
-			identified_periods=np.where(periods!=0)[0]
-			per_num=len(identified_periods)
-			period_number.append(per_num)
-
-			period_length[0:per_num,y,x]=periods[identified_periods]
-			period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
-			period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
-			period_season[0:per_num,y,x]=season[identified_periods]
-			period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
+				period_length[0:per_num,y,x]=periods[identified_periods]
+				period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
+				period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
+				period_season[0:per_num,y,x]=season[identified_periods]
+				period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
+			except:
+				print('issue at grid ',y,' ',x)
 
 	per_num=max(period_number)
 
