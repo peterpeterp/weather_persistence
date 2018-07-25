@@ -1,3 +1,8 @@
+# Author: Peter Pfleiderer <peter.pfleiderer@climateanalytics.org>
+#
+# License: GNU General Public License v3.0
+
+
 import os,sys,glob,time,collections,gc
 import numpy as np
 from netCDF4 import Dataset,netcdftime,num2date
