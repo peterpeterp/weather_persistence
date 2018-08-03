@@ -107,7 +107,7 @@ def test_persistence(N):
 
 def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
 	"""
-	main file
+	main file dsa
 	"""
 
 	nc_in=Dataset(state_file,'r')
