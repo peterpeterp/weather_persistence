@@ -1,0 +1,524 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>persistence_functions &mdash; local_weather_persistence  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> local_weather_persistence
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/period_identifier.html">Methods used to identify periods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">local_weather_persistence</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>persistence_functions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for persistence_functions</h1><div class="highlight"><pre>
+<span></span>
+<span class="c1"># Author: Peter Pfleiderer &lt;peter.pfleiderer@climateanalytics.org&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: GNU General Public License v3.0</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">glob</span><span class="o">,</span><span class="nn">time</span><span class="o">,</span><span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">netCDF4</span> <span class="k">import</span> <span class="n">Dataset</span><span class="p">,</span><span class="n">num2date</span>
+<span class="kn">import</span> <span class="nn">random</span> <span class="k">as</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">dimarray</span> <span class="k">as</span> <span class="nn">da</span>
+
+
+<div class="viewcode-block" id="period_identifier"><a class="viewcode-back" href="../api.html#persistence_functions.period_identifier">[docs]</a><span class="k">def</span> <span class="nf">period_identifier</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Straight foreward period identifier. Missing values cut periods.</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">		ind: np.array</span>
+<span class="sd">			array containing -1 and 1 corresponding to two state</span>
+
+<span class="sd">	Returns</span>
+<span class="sd">	--------</span>
+<span class="sd">		pers: np.array</span>
+<span class="sd">			array of the same length as `ind` containing the length of identified periods. Periods of state -1 are have negative lengths. The period length of a period is placed in the center of the period. All other values are 0.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+
+	<span class="n">pers</span><span class="o">=</span><span class="n">ind</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="mf">0.0</span>
+
+	<span class="n">state</span><span class="p">,</span><span class="n">count</span><span class="o">=</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">1</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)):</span>
+		<span class="k">if</span> <span class="n">ind</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">!=</span><span class="n">state</span><span class="p">:</span>
+			<span class="n">pers</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">count</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="n">state</span><span class="o">*</span><span class="n">count</span>
+			<span class="n">count</span><span class="o">=</span><span class="mi">0</span>
+			<span class="n">state</span><span class="o">*=-</span><span class="mi">1</span>
+			<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
+				<span class="n">pers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+				<span class="n">count</span><span class="o">=</span><span class="mi">0</span>
+		<span class="k">if</span> <span class="n">ind</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="n">state</span><span class="p">:</span>
+			<span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
+
+	<span class="c1"># still an issue with last period??</span>
+	<span class="k">if</span> <span class="n">state</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>	<span class="n">pers</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">count</span><span class="o">/</span><span class="mi">2</span><span class="p">]</span><span class="o">=</span><span class="n">state</span><span class="o">*</span><span class="n">count</span>
+	<span class="k">if</span> <span class="n">state</span><span class="o">==-</span><span class="mi">1</span><span class="p">:</span>	<span class="n">pers</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">count</span><span class="o">/</span><span class="mi">2</span><span class="p">]</span><span class="o">=</span><span class="n">state</span><span class="o">*</span><span class="n">count</span>
+
+	<span class="k">return</span><span class="p">(</span><span class="n">pers</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="optimized_period_identifier"><a class="viewcode-back" href="../api.html#persistence_functions.optimized_period_identifier">[docs]</a><span class="k">def</span> <span class="nf">optimized_period_identifier</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	This function identifies persistent periods using collections. It isn&#39;t a straight foreward implementation but runs faster than :meth:`period_identifier`</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">		ind: np.array</span>
+<span class="sd">			array containing -1 and 1 corresponding to two state</span>
+
+<span class="sd">	Returns</span>
+<span class="sd">	--------</span>
+<span class="sd">		pers: np.array</span>
+<span class="sd">			array of the same length as `ind` containing the length of identified periods. Periods of state -1 are have negative lengths. The period length of a period is placed in the center of the period. All other values are 0.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">pers</span><span class="o">=</span><span class="n">ind</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="mi">0</span>
+
+	<span class="n">ind</span><span class="p">[</span><span class="n">ind</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span>
+
+	<span class="n">cuts</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+	<span class="n">cuts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">))</span>
+	<span class="n">cut_start</span><span class="o">=</span><span class="mi">0</span>
+
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ind</span><span class="o">==</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">pers</span>
+
+	<span class="k">for</span> <span class="n">cut_stop</span> <span class="ow">in</span> <span class="n">cuts</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">cut_start</span><span class="o">==</span><span class="n">cut_stop</span><span class="p">:</span>
+			<span class="n">cut_start</span><span class="o">=</span><span class="n">cut_stop</span><span class="o">+</span><span class="mi">1</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">ind_cut</span><span class="o">=</span><span class="n">ind</span><span class="p">[</span><span class="n">cut_start</span><span class="p">:</span><span class="n">cut_stop</span><span class="p">]</span>
+			<span class="n">pers_cut</span><span class="o">=</span><span class="n">ind_cut</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="mi">0</span>
+
+			<span class="n">su</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">ind_cut</span><span class="p">)</span>
+			<span class="n">counter</span><span class="o">=</span><span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">su</span><span class="p">)</span>
+
+			<span class="n">index</span><span class="o">=</span><span class="mi">0</span>
+			<span class="k">for</span> <span class="n">count</span><span class="p">,</span><span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">counter</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span><span class="n">counter</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+				<span class="n">index</span><span class="o">+=</span><span class="n">count</span>
+				<span class="k">if</span> <span class="n">count</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+					<span class="n">pers_cut</span><span class="p">[</span><span class="n">index</span><span class="o">-</span><span class="p">(</span><span class="n">count</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">=-</span><span class="mi">1</span><span class="o">*</span><span class="p">(</span><span class="n">count</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+			<span class="c1"># correct start</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ind_cut</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>	<span class="n">pers_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=-</span><span class="mi">1</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="k">if</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>	<span class="n">pers_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=-</span><span class="mi">1</span>
+				<span class="k">if</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>	<span class="n">pers_cut</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pers_cut</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span><span class="o">-=</span><span class="mi">1</span>
+
+			<span class="n">ind_cut</span><span class="o">=-</span><span class="n">ind_cut</span><span class="o">+</span><span class="mi">1</span>
+			<span class="n">su</span><span class="o">=</span><span class="n">ind_cut</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="mi">0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">ind_cut</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+			<span class="n">counter</span><span class="o">=</span><span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">su</span><span class="p">)</span>
+
+			<span class="n">index</span><span class="o">=</span><span class="mi">0</span>
+			<span class="k">for</span> <span class="n">count</span><span class="p">,</span><span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">counter</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span><span class="n">counter</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+				<span class="n">index</span><span class="o">+=</span><span class="n">count</span>
+				<span class="k">if</span> <span class="n">count</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+					<span class="n">pers_cut</span><span class="p">[</span><span class="n">index</span><span class="o">-</span><span class="p">(</span><span class="n">count</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="n">count</span><span class="o">-</span><span class="mi">1</span>
+			<span class="c1"># correct start</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ind_cut</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>	<span class="n">pers_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="k">if</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>	<span class="n">pers_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
+				<span class="k">if</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">ind_cut</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>	<span class="n">pers_cut</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pers_cut</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span><span class="o">+=</span><span class="mi">1</span>
+
+			<span class="n">pers</span><span class="p">[</span><span class="n">cut_start</span><span class="p">:</span><span class="n">cut_stop</span><span class="p">]</span><span class="o">=</span><span class="n">pers_cut</span>
+			<span class="n">cut_start</span><span class="o">=</span><span class="n">cut_stop</span><span class="o">+</span><span class="mi">1</span>
+
+	<span class="k">return</span><span class="p">(</span><span class="n">pers</span><span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">test_persistence</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+	<span class="n">ind</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+	<span class="n">ind</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+	<span class="n">ind</span><span class="p">[</span><span class="n">ind</span><span class="o">&lt;</span><span class="mf">0.5</span><span class="p">]</span><span class="o">=-</span><span class="mi">1</span>
+	<span class="n">ind</span><span class="p">[</span><span class="n">ind</span><span class="o">&gt;=</span><span class="mf">0.5</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
+	<span class="n">ind</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span><span class="s1">&#39;f&#39;</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">])</span>
+
+	<span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="n">period_identifier</span><span class="p">(</span><span class="n">ind</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">])</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--- basic_and_understandable </span><span class="si">%s</span><span class="s2"> seconds ---&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))</span>
+
+	<span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="n">optimized_period_identifier</span><span class="p">(</span><span class="n">ind</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">])</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--- optimized_period_identifier </span><span class="si">%s</span><span class="s2"> seconds ---&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))</span>
+
+<span class="c1">#test_persistence(100)</span>
+
+<div class="viewcode-block" id="get_persistence"><a class="viewcode-back" href="../api.html#persistence_functions.get_persistence">[docs]</a><span class="k">def</span> <span class="nf">get_persistence</span><span class="p">(</span><span class="n">state_file</span><span class="p">,</span><span class="n">out_file</span><span class="p">,</span><span class="n">seasons</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;MAM&#39;</span><span class="p">:{</span><span class="s1">&#39;months&#39;</span><span class="p">:[</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">],</span><span class="s1">&#39;index&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">},</span> <span class="s1">&#39;JJA&#39;</span><span class="p">:{</span><span class="s1">&#39;months&#39;</span><span class="p">:[</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">],</span><span class="s1">&#39;index&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">},</span> <span class="s1">&#39;SON&#39;</span><span class="p">:{</span><span class="s1">&#39;months&#39;</span><span class="p">:[</span><span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">],</span><span class="s1">&#39;index&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">},</span> <span class="s1">&#39;DJF&#39;</span><span class="p">:{</span><span class="s1">&#39;months&#39;</span><span class="p">:[</span><span class="mi">12</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span><span class="s1">&#39;index&#39;</span><span class="p">:</span><span class="mi">3</span><span class="p">}},</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	This function reads a state field created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index` and finds persistent periods for these statesself. It uses :meth:`optimized_period_identifier`</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">		state_file: str</span>
+<span class="sd">			filepath of a state file. This file needs to have a variable `&#39;state&#39;` with -1 and 1 for the two different states. This file can be created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index`</span>
+<span class="sd">		out_file: str</span>
+<span class="sd">			filepath of a period file</span>
+<span class="sd">		seasons: dict, default=`{&#39;MAM&#39;:{&#39;months&#39;:[3,4,5],&#39;index&#39;:0}, &#39;JJA&#39;:{&#39;months&#39;:[6,7,8],&#39;index&#39;:1}, &#39;SON&#39;:{&#39;months&#39;:[9,10,11],&#39;index&#39;:2}, &#39;DJF&#39;:{&#39;months&#39;:[12,1,2],&#39;index&#39;:3}}``</span>
+<span class="sd">			dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use `seasons={&#39;year&#39;:{&#39;months&#39;:range(12),&#39;index&#39;:0}}`</span>
+<span class="sd">		overwrite: bool</span>
+<span class="sd">			overwrites existing files</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+
+	<span class="n">nc_in</span><span class="o">=</span><span class="n">Dataset</span><span class="p">(</span><span class="n">state_file</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+	<span class="c1"># handle time</span>
+	<span class="n">time_axis</span><span class="o">=</span><span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">][:]</span>
+	<span class="n">datevar</span> <span class="o">=</span> <span class="n">num2date</span><span class="p">(</span><span class="n">time_axis</span><span class="p">,</span><span class="n">units</span> <span class="o">=</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span><span class="n">calendar</span> <span class="o">=</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">calendar</span><span class="p">)</span>
+	<span class="n">month</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>	<span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">datevar</span><span class="p">[:]])</span>
+	<span class="n">year</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>	<span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">datevar</span><span class="p">[:]])</span>
+
+	<span class="n">season</span><span class="o">=</span><span class="n">month</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+	<span class="k">for</span> <span class="n">sea</span> <span class="ow">in</span> <span class="n">seasons</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+		<span class="n">season</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">month</span><span class="o">==</span><span class="n">seasons</span><span class="p">[</span><span class="n">sea</span><span class="p">][</span><span class="s1">&#39;months&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">|</span> <span class="p">(</span><span class="n">month</span><span class="o">==</span><span class="n">seasons</span><span class="p">[</span><span class="n">sea</span><span class="p">][</span><span class="s1">&#39;months&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="o">|</span> <span class="p">(</span><span class="n">month</span><span class="o">==</span><span class="n">seasons</span><span class="p">[</span><span class="n">sea</span><span class="p">][</span><span class="s1">&#39;months&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span> <span class="p">)[</span><span class="mi">0</span><span class="p">]]</span><span class="o">=</span><span class="n">seasons</span><span class="p">[</span><span class="n">sea</span><span class="p">][</span><span class="s1">&#39;index&#39;</span><span class="p">]</span>
+
+	<span class="n">monthly_index</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">mon</span><span class="o">+</span><span class="n">yr</span><span class="o">*</span><span class="mi">12</span> <span class="k">for</span> <span class="n">mon</span><span class="p">,</span><span class="n">yr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">month</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">year</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">year</span><span class="p">))])</span>
+	<span class="n">mon_year_axis</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">yr</span><span class="o">+</span><span class="n">mn</span><span class="o">*</span><span class="mf">0.01</span> <span class="k">for</span> <span class="n">yr</span><span class="p">,</span><span class="n">mn</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">year</span><span class="p">,</span><span class="n">month</span><span class="p">)])</span>
+
+	<span class="n">state</span><span class="o">=</span><span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">][:,:,:]</span>
+
+	<span class="c1">#period=state.copy()*np.nan</span>
+	<span class="n">period_length</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+	<span class="n">period_state</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+	<span class="n">period_midpoints</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+	<span class="n">period_season</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+	<span class="n">period_monthly_index</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+	<span class="n">period_number</span><span class="o">=</span><span class="p">[]</span>
+	<span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+		<span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+			<span class="n">start_time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">periods</span><span class="o">=</span><span class="n">optimized_period_identifier</span><span class="p">(</span><span class="n">state</span><span class="p">[:,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+				<span class="n">identified_periods</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">periods</span><span class="o">!=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+				<span class="n">per_num</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">identified_periods</span><span class="p">)</span>
+				<span class="n">period_number</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_num</span><span class="p">)</span>
+
+				<span class="n">period_length</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">]</span><span class="o">=</span><span class="n">periods</span><span class="p">[</span><span class="n">identified_periods</span><span class="p">]</span>
+				<span class="n">period_state</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">periods</span><span class="p">[</span><span class="n">identified_periods</span><span class="p">])</span>
+				<span class="n">period_midpoints</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">]</span><span class="o">=</span><span class="n">time_axis</span><span class="p">[</span><span class="n">identified_periods</span><span class="p">]</span>
+				<span class="n">period_season</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">]</span><span class="o">=</span><span class="n">season</span><span class="p">[</span><span class="n">identified_periods</span><span class="p">]</span>
+				<span class="n">period_monthly_index</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">x</span><span class="p">]</span><span class="o">=</span><span class="n">monthly_index</span><span class="p">[</span><span class="n">identified_periods</span><span class="p">]</span>
+			<span class="k">except</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;issue at grid &#39;</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="n">x</span><span class="p">)</span>
+
+	<span class="n">per_num</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">period_number</span><span class="p">)</span>
+
+	<span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s1">&#39;rm &#39;</span><span class="o">+</span><span class="n">out_file</span><span class="p">)</span>
+	<span class="n">nc_out</span><span class="o">=</span><span class="n">Dataset</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+	<span class="k">for</span> <span class="n">dname</span><span class="p">,</span> <span class="n">the_dim</span> <span class="ow">in</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+		<span class="k">if</span> <span class="n">dname</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">]:</span><span class="n">nc_out</span><span class="o">.</span><span class="n">createDimension</span><span class="p">(</span><span class="n">dname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">the_dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">the_dim</span><span class="o">.</span><span class="n">isunlimited</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+	<span class="n">nc_out</span><span class="o">.</span><span class="n">createDimension</span><span class="p">(</span><span class="s1">&#39;period_id&#39;</span><span class="p">,</span> <span class="n">per_num</span><span class="p">)</span>
+
+	<span class="k">for</span> <span class="n">v_name</span><span class="p">,</span> <span class="n">varin</span> <span class="ow">in</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+		<span class="k">if</span> <span class="n">v_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">]:</span>
+			<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="n">v_name</span><span class="p">,</span> <span class="n">varin</span><span class="o">.</span><span class="n">datatype</span><span class="p">,</span> <span class="n">varin</span><span class="o">.</span><span class="n">dimensions</span><span class="p">)</span>
+			<span class="n">outVar</span><span class="o">.</span><span class="n">setncatts</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">varin</span><span class="o">.</span><span class="n">getncattr</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">varin</span><span class="o">.</span><span class="n">ncattrs</span><span class="p">()})</span>
+			<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">varin</span><span class="p">[:]</span>
+
+	<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s1">&#39;period_length&#39;</span><span class="p">,</span><span class="s1">&#39;i2&#39;</span><span class="p">,(</span><span class="s1">&#39;period_id&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span><span class="s1">&#39;lon&#39;</span><span class="p">,))</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">long_name</span><span class="o">=</span><span class="s1">&#39;period length in days&#39;</span>
+	<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">period_length</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,:,:]</span>
+
+	<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s1">&#39;period_state&#39;</span><span class="p">,</span><span class="s1">&#39;i1&#39;</span><span class="p">,(</span><span class="s1">&#39;period_id&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span><span class="s1">&#39;lon&#39;</span><span class="p">,))</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">long_name</span><span class="o">=</span><span class="s1">&#39;period type&#39;</span>
+	<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">period_state</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,:,:]</span>
+
+	<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s1">&#39;period_midpoints&#39;</span><span class="p">,</span><span class="s1">&#39;f&#39;</span><span class="p">,(</span><span class="s1">&#39;period_id&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span><span class="s1">&#39;lon&#39;</span><span class="p">,))</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">long_name</span><span class="o">=</span><span class="s1">&#39;midpoint of period&#39;</span>
+	<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">period_midpoints</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,:,:]</span>
+
+	<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s1">&#39;period_monthly_index&#39;</span><span class="p">,</span><span class="s1">&#39;i2&#39;</span><span class="p">,(</span><span class="s1">&#39;period_id&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span><span class="s1">&#39;lon&#39;</span><span class="p">,))</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">long_name</span><span class="o">=</span><span class="s1">&#39;monthly index 0 to number of years * 12&#39;</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">first_time_step</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">year</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39; - &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">month</span><span class="p">))</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">last_time_step</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">year</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39; - &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">month</span><span class="p">))</span>
+	<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">period_monthly_index</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,:,:]</span>
+
+	<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s1">&#39;period_season&#39;</span><span class="p">,</span><span class="s1">&#39;i1&#39;</span><span class="p">,(</span><span class="s1">&#39;period_id&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span><span class="s1">&#39;lon&#39;</span><span class="p">,))</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">long_name</span><span class="o">=</span><span class="s1">&#39;season in which the midpoint of period is located&#39;</span>
+	<span class="n">outVar</span><span class="o">.</span><span class="n">description</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">seasons</span><span class="p">)</span>
+	<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">period_season</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">per_num</span><span class="p">,:,:]</span>
+
+	<span class="n">nc_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+	<span class="n">nc_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="temp_anomaly_to_ind"><a class="viewcode-back" href="../api.html#persistence_functions.temp_anomaly_to_ind">[docs]</a><span class="k">def</span> <span class="nf">temp_anomaly_to_ind</span><span class="p">(</span><span class="n">anom_file</span><span class="p">,</span><span class="n">out_file</span><span class="p">,</span><span class="n">var_name</span><span class="o">=</span><span class="s1">&#39;tas&#39;</span><span class="p">,</span><span class="n">seasons</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;MAM&#39;</span><span class="p">:[</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">],</span><span class="s1">&#39;JJA&#39;</span><span class="p">:[</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">],</span><span class="s1">&#39;SON&#39;</span><span class="p">:[</span><span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">],</span><span class="s1">&#39;DJF&#39;</span><span class="p">:[</span><span class="mi">12</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]},</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Classifies daily temperature anomalies into &#39;cold&#39; and &#39;warm&#39; days using the season and grid-cell specific median as threshold</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">		anom_file: str</span>
+<span class="sd">			filepath of a temperature anomalies file. The variable that is read in can be specified with `var_name`.</span>
+<span class="sd">		out_file: str</span>
+<span class="sd">			filepath of a state file</span>
+<span class="sd">		var_name: str</span>
+<span class="sd">			name of the variable read in `anom_file`</span>
+<span class="sd">		seasons: dict, default=`{&#39;MAM&#39;:{&#39;months&#39;:[3,4,5],&#39;index&#39;:0}, &#39;JJA&#39;:{&#39;months&#39;:[6,7,8],&#39;index&#39;:1}, &#39;SON&#39;:{&#39;months&#39;:[9,10,11],&#39;index&#39;:2}, &#39;DJF&#39;:{&#39;months&#39;:[12,1,2],&#39;index&#39;:3}}``</span>
+<span class="sd">			dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use `seasons={&#39;year&#39;:{&#39;months&#39;:range(12),&#39;index&#39;:0}}`</span>
+<span class="sd">		overwrite: bool</span>
+<span class="sd">			overwrites existing files</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">nc_in</span><span class="o">=</span><span class="n">Dataset</span><span class="p">(</span><span class="n">anom_file</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+	<span class="n">time</span><span class="o">=</span><span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">][:]</span>
+	<span class="n">datevar</span> <span class="o">=</span> <span class="n">num2date</span><span class="p">(</span><span class="n">time</span><span class="p">,</span><span class="n">units</span> <span class="o">=</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span><span class="n">calendar</span> <span class="o">=</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">calendar</span><span class="p">)</span>
+	<span class="n">month</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>	<span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">datevar</span><span class="p">[:]])</span>
+
+	<span class="n">anom</span><span class="o">=</span><span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var_name</span><span class="p">][:,:,:]</span>
+
+	<span class="k">for</span> <span class="n">season</span> <span class="ow">in</span> <span class="n">seasons</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+		<span class="n">days_in_season</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span> <span class="p">(</span><span class="n">month</span><span class="o">==</span><span class="n">seasons</span><span class="p">[</span><span class="n">season</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">|</span> <span class="p">(</span><span class="n">month</span><span class="o">==</span><span class="n">seasons</span><span class="p">[</span><span class="n">season</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="o">|</span> <span class="p">(</span><span class="n">month</span><span class="o">==</span><span class="n">seasons</span><span class="p">[</span><span class="n">season</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span> <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+		<span class="n">seasonal_median</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">anom</span><span class="p">[</span><span class="n">days_in_season</span><span class="p">,:,:],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		<span class="n">anom</span><span class="p">[</span><span class="n">days_in_season</span><span class="p">,:,:]</span><span class="o">-=</span><span class="n">seasonal_median</span>
+
+	<span class="n">anom</span><span class="p">[</span><span class="n">anom</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+	<span class="n">anom</span><span class="p">[</span><span class="n">anom</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+	<span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s1">&#39;rm &#39;</span><span class="o">+</span><span class="n">out_file</span><span class="p">)</span>
+	<span class="n">nc_out</span><span class="o">=</span><span class="n">Dataset</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+	<span class="k">for</span> <span class="n">dname</span><span class="p">,</span> <span class="n">the_dim</span> <span class="ow">in</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>	<span class="n">nc_out</span><span class="o">.</span><span class="n">createDimension</span><span class="p">(</span><span class="n">dname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">the_dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">the_dim</span><span class="o">.</span><span class="n">isunlimited</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+	<span class="k">for</span> <span class="n">v_name</span><span class="p">,</span> <span class="n">varin</span> <span class="ow">in</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+		<span class="k">if</span> <span class="n">v_name</span><span class="o">!=</span><span class="n">var_name</span><span class="p">:</span>
+			<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="n">v_name</span><span class="p">,</span> <span class="n">varin</span><span class="o">.</span><span class="n">datatype</span><span class="p">,</span> <span class="n">varin</span><span class="o">.</span><span class="n">dimensions</span><span class="p">)</span>
+			<span class="n">outVar</span><span class="o">.</span><span class="n">setncatts</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">varin</span><span class="o">.</span><span class="n">getncattr</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">varin</span><span class="o">.</span><span class="n">ncattrs</span><span class="p">()})</span>
+			<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">varin</span><span class="p">[:]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">,</span><span class="s1">&#39;i1&#39;</span><span class="p">,(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span><span class="s1">&#39;lon&#39;</span><span class="p">,))</span>
+			<span class="n">outVar</span><span class="o">.</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;daily anomalies - seasonal medain of daily anomalies at grid cell level. positive anomalies -&gt; 1 negative anomalies -&gt; -1&#39;</span>
+			<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">anom</span>
+
+	<span class="n">nc_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+	<span class="n">nc_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="precip_to_index"><a class="viewcode-back" href="../api.html#persistence_functions.precip_to_index">[docs]</a><span class="k">def</span> <span class="nf">precip_to_index</span><span class="p">(</span><span class="n">in_file</span><span class="p">,</span><span class="n">out_file</span><span class="p">,</span><span class="n">var_name</span><span class="o">=</span><span class="s1">&#39;pr&#39;</span><span class="p">,</span><span class="n">unit_multiplier</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Classifies daily precipitation into &#39;wet&#39; and &#39;dry&#39; days based on a `threshold`</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">		anom_file: str</span>
+<span class="sd">			filepath of a daily precipitation file. The variable that is read in can be specified with `var_name`.</span>
+<span class="sd">		out_file: str</span>
+<span class="sd">			filepath of a state file</span>
+<span class="sd">		var_name: str</span>
+<span class="sd">			name of the variable read in `anom_file`</span>
+<span class="sd">		threshold: float,default=0.5</span>
+<span class="sd">			threshold used to differentiate between wet and dry days</span>
+<span class="sd">		unit_multiplier: float,default=1</span>
+<span class="sd">			factor to multiply daily precipiation with to get mm as units</span>
+<span class="sd">		overwrite: bool</span>
+<span class="sd">			overwrites existing files</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">nc_in</span><span class="o">=</span><span class="n">Dataset</span><span class="p">(</span><span class="n">in_file</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+	<span class="n">anom</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var_name</span><span class="p">][:,:,:])</span><span class="o">*</span><span class="n">unit_multiplier</span>
+	<span class="n">mask</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">getmask</span><span class="p">(</span><span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var_name</span><span class="p">][:,:,:])</span>
+	<span class="n">anom</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+
+	<span class="n">anom</span><span class="p">[</span><span class="n">anom</span><span class="o">&gt;=</span><span class="n">threshold</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+	<span class="n">anom</span><span class="p">[</span><span class="n">anom</span><span class="o">&lt;</span><span class="n">threshold</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+	<span class="n">anom</span><span class="p">[</span><span class="n">anom</span><span class="o">**</span><span class="mi">2</span><span class="o">!=</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+	<span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s1">&#39;rm &#39;</span><span class="o">+</span><span class="n">out_file</span><span class="p">)</span>
+	<span class="n">nc_out</span><span class="o">=</span><span class="n">Dataset</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+	<span class="k">for</span> <span class="n">dname</span><span class="p">,</span> <span class="n">the_dim</span> <span class="ow">in</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>	<span class="n">nc_out</span><span class="o">.</span><span class="n">createDimension</span><span class="p">(</span><span class="n">dname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">the_dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">the_dim</span><span class="o">.</span><span class="n">isunlimited</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+	<span class="k">for</span> <span class="n">v_name</span><span class="p">,</span> <span class="n">varin</span> <span class="ow">in</span> <span class="n">nc_in</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+		<span class="k">if</span> <span class="n">v_name</span><span class="o">!=</span><span class="n">var_name</span><span class="p">:</span>
+			<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="n">v_name</span><span class="p">,</span> <span class="n">varin</span><span class="o">.</span><span class="n">datatype</span><span class="p">,</span> <span class="n">varin</span><span class="o">.</span><span class="n">dimensions</span><span class="p">)</span>
+			<span class="n">outVar</span><span class="o">.</span><span class="n">setncatts</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">varin</span><span class="o">.</span><span class="n">getncattr</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">varin</span><span class="o">.</span><span class="n">ncattrs</span><span class="p">()})</span>
+			<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">varin</span><span class="p">[:]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">outVar</span> <span class="o">=</span> <span class="n">nc_out</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">,</span><span class="s1">&#39;i1&#39;</span><span class="p">,(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span><span class="s1">&#39;lon&#39;</span><span class="p">,),</span><span class="n">fill_value</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+			<span class="n">outVar</span><span class="o">.</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;dry (wet) days are days with precipiation below (above) &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; and are saved as -1 (1)&#39;</span>
+			<span class="n">outVar</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">anom</span>
+
+	<span class="n">nc_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+	<span class="n">nc_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Peter Pfleiderer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

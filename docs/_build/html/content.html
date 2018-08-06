@@ -1,0 +1,314 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Modules &mdash; local_weather_persistence  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> local_weather_persistence
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/period_identifier.html">Methods used to identify periods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">local_weather_persistence</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Modules</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/content.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="modules">
+<h1>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-persistence_functions">
+<span id="tropical-cyclone-detection-and-tracking"></span><h2>Tropical cyclone detection and tracking<a class="headerlink" href="#module-persistence_functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="persistence_functions.get_persistence">
+<code class="descclassname">persistence_functions.</code><code class="descname">get_persistence</code><span class="sig-paren">(</span><em>state_file</em>, <em>out_file</em>, <em>seasons={'DJF': {'index': 3</em>, <em>'months': [12</em>, <em>1</em>, <em>2]}</em>, <em>'JJA': {'index': 1</em>, <em>'months': [6</em>, <em>7</em>, <em>8]}</em>, <em>'MAM': {'index': 0</em>, <em>'months': [3</em>, <em>4</em>, <em>5]}</em>, <em>'SON': {'index': 2</em>, <em>'months': [9</em>, <em>10</em>, <em>11]}}</em>, <em>overwrite=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/persistence_functions.html#get_persistence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#persistence_functions.get_persistence" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function reads a state field created by <a class="reference internal" href="#persistence_functions.temp_anomaly_to_ind" title="persistence_functions.temp_anomaly_to_ind"><code class="xref py py-meth docutils literal notranslate"><span class="pre">temp_anomaly_to_ind()</span></code></a> or <a class="reference internal" href="#persistence_functions.precip_to_index" title="persistence_functions.precip_to_index"><code class="xref py py-meth docutils literal notranslate"><span class="pre">precip_to_index()</span></code></a> and finds persistent periods for these statesself. It uses <a class="reference internal" href="#persistence_functions.optimized_period_identifier" title="persistence_functions.optimized_period_identifier"><code class="xref py py-meth docutils literal notranslate"><span class="pre">optimized_period_identifier()</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>state_file</strong> (<em>str</em>) – filepath of a state file. This file needs to have a variable <cite>‘state’</cite> with -1 and 1 for the two different states. This file can be created by <a class="reference internal" href="#persistence_functions.temp_anomaly_to_ind" title="persistence_functions.temp_anomaly_to_ind"><code class="xref py py-meth docutils literal notranslate"><span class="pre">temp_anomaly_to_ind()</span></code></a> or <a class="reference internal" href="#persistence_functions.precip_to_index" title="persistence_functions.precip_to_index"><code class="xref py py-meth docutils literal notranslate"><span class="pre">precip_to_index()</span></code></a></li>
+<li><strong>out_file</strong> (<em>str</em>) – filepath of a period file</li>
+<li><strong>seasons</strong> (<em>dict</em><em>, </em><em>default=`{'MAM':{'months':</em><em>[</em><em>3</em><em>,</em><em>4</em><em>,</em><em>5</em><em>]</em><em>,</em><em>'index':0}</em><em>, </em><em>'JJA':{'months':</em><em>[</em><em>6</em><em>,</em><em>7</em><em>,</em><em>8</em><em>]</em><em>,</em><em>'index':1}</em><em>, </em><em>'SON':{'months':</em><em>[</em><em>9</em><em>,</em><em>10</em><em>,</em><em>11</em><em>]</em><em>,</em><em>'index':2}</em><em>, </em><em>'DJF':{'months':</em><em>[</em><em>12</em><em>,</em><em>1</em><em>,</em><em>2</em><em>]</em><em>,</em><em>'index':3}}``</em>) – dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use <cite>seasons={‘year’:{‘months’:range(12),’index’:0}}</cite></li>
+<li><strong>overwrite</strong> (<em>bool</em>) – overwrites existing files</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="persistence_functions.optimized_period_identifier">
+<code class="descclassname">persistence_functions.</code><code class="descname">optimized_period_identifier</code><span class="sig-paren">(</span><em>ind</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/persistence_functions.html#optimized_period_identifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#persistence_functions.optimized_period_identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function identifies persistent periods using collections. It isn’t a straight foreward implementation but runs faster than <a class="reference internal" href="#persistence_functions.period_identifier" title="persistence_functions.period_identifier"><code class="xref py py-meth docutils literal notranslate"><span class="pre">period_identifier()</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ind</strong> (<em>np.array</em>) – array containing -1 and 1 corresponding to two state</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>pers</strong> – array of the same length as <cite>ind</cite> containing the length of identified periods. Periods of state -1 are have negative lengths. The period length of a period is placed in the center of the period. All other values are 0.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="persistence_functions.period_identifier">
+<code class="descclassname">persistence_functions.</code><code class="descname">period_identifier</code><span class="sig-paren">(</span><em>ind</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/persistence_functions.html#period_identifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#persistence_functions.period_identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Straight foreward period identifier. Missing values cut periods.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ind</strong> (<em>np.array</em>) – array containing -1 and 1 corresponding to two state</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>pers</strong> – array of the same length as <cite>ind</cite> containing the length of identified periods. Periods of state -1 are have negative lengths. The period length of a period is placed in the center of the period. All other values are 0.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="persistence_functions.precip_to_index">
+<code class="descclassname">persistence_functions.</code><code class="descname">precip_to_index</code><span class="sig-paren">(</span><em>in_file</em>, <em>out_file</em>, <em>var_name='pr'</em>, <em>unit_multiplier=1</em>, <em>threshold=0.5</em>, <em>overwrite=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/persistence_functions.html#precip_to_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#persistence_functions.precip_to_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classifies daily precipitation into ‘wet’ and ‘dry’ days based on a <cite>threshold</cite></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>anom_file</strong> (<em>str</em>) – filepath of a daily precipitation file. The variable that is read in can be specified with <cite>var_name</cite>.</li>
+<li><strong>out_file</strong> (<em>str</em>) – filepath of a state file</li>
+<li><strong>var_name</strong> (<em>str</em>) – name of the variable read in <cite>anom_file</cite></li>
+<li><strong>threshold</strong> (<em>float</em><em>,</em><em>default=0.5</em>) – threshold used to differentiate between wet and dry days</li>
+<li><strong>unit_multiplier</strong> (<em>float</em><em>,</em><em>default=1</em>) – factor to multiply daily precipiation with to get mm as units</li>
+<li><strong>overwrite</strong> (<em>bool</em>) – overwrites existing files</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="persistence_functions.temp_anomaly_to_ind">
+<code class="descclassname">persistence_functions.</code><code class="descname">temp_anomaly_to_ind</code><span class="sig-paren">(</span><em>anom_file, out_file, var_name='tas', seasons={'DJF': [12, 1, 2], 'JJA': [6, 7, 8], 'MAM': [3, 4, 5], 'SON': [9, 10, 11]}, overwrite=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/persistence_functions.html#temp_anomaly_to_ind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#persistence_functions.temp_anomaly_to_ind" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classifies daily temperature anomalies into ‘cold’ and ‘warm’ days using the season and grid-cell specific median as threshold</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>anom_file</strong> (<em>str</em>) – filepath of a temperature anomalies file. The variable that is read in can be specified with <cite>var_name</cite>.</li>
+<li><strong>out_file</strong> (<em>str</em>) – filepath of a state file</li>
+<li><strong>var_name</strong> (<em>str</em>) – name of the variable read in <cite>anom_file</cite></li>
+<li><strong>seasons</strong> (<em>dict</em><em>, </em><em>default=`{'MAM':{'months':</em><em>[</em><em>3</em><em>,</em><em>4</em><em>,</em><em>5</em><em>]</em><em>,</em><em>'index':0}</em><em>, </em><em>'JJA':{'months':</em><em>[</em><em>6</em><em>,</em><em>7</em><em>,</em><em>8</em><em>]</em><em>,</em><em>'index':1}</em><em>, </em><em>'SON':{'months':</em><em>[</em><em>9</em><em>,</em><em>10</em><em>,</em><em>11</em><em>]</em><em>,</em><em>'index':2}</em><em>, </em><em>'DJF':{'months':</em><em>[</em><em>12</em><em>,</em><em>1</em><em>,</em><em>2</em><em>]</em><em>,</em><em>'index':3}}``</em>) – dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use <cite>seasons={‘year’:{‘months’:range(12),’index’:0}}</cite></li>
+<li><strong>overwrite</strong> (<em>bool</em>) – overwrites existing files</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<p>This part of the documentation shows the full API reference of all public
+functions.</p>
+<div class="section" id="detecting-storm-snapshots">
+<h3>Detecting storm snapshots<a class="headerlink" href="#detecting-storm-snapshots" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Peter Pfleiderer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

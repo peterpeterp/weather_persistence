@@ -11,20 +11,35 @@ import dimarray as da
 
 
 def period_identifier(ind):
-	pers=ind.copy()*0
+	"""
+	Straight foreward period identifier. Missing values cut periods.
+
+	Parameters
+	----------
+		ind: np.array
+			array containing -1 and 1 corresponding to two state
+
+	Returns
+	--------
+		pers: np.array
+			array of the same length as `ind` containing the length of identified periods. Periods of state -1 are have negative lengths. The period length of a period is placed in the center of the period. All other values are 0.
+	"""
+
+	pers=ind.copy()*0.0
 
 	state,count=ind[0],1
 	for i in range(1,len(ind)):
-		if ind[i]==state:
-			count+=1
 		if ind[i]!=state:
 			pers[i-count/2-1]=state*count
 			count=0
-			if ind[i]!=99:
-				state*=-1
-				count=1
+			state*=-1
+			if np.isfinite(ind[i])==False:
+				pers[i]=np.nan
+				count=0
+		if ind[i]==state:
+			count+=1
 
-	# still an issue with last spell??
+	# still an issue with last period??
 	if state==1:	pers[i-count/2]=state*count
 	if state==-1:	pers[i-count/2]=state*count
 
@@ -32,8 +47,19 @@ def period_identifier(ind):
 
 
 def optimized_period_identifier(ind):
-	# not straight forward but faster
-	# works with nans
+	"""
+	This function identifies persistent periods using collections. It isn't a straight foreward implementation but runs faster than :meth:`period_identifier`
+
+	Parameters
+	----------
+		ind: np.array
+			array containing -1 and 1 corresponding to two state
+
+	Returns
+	--------
+		pers: np.array
+			array of the same length as `ind` containing the length of identified periods. Periods of state -1 are have negative lengths. The period length of a period is placed in the center of the period. All other values are 0.
+	"""
 	pers=ind.copy()*0
 
 	ind[ind<0]=0
@@ -88,11 +114,10 @@ def optimized_period_identifier(ind):
 
 def test_persistence(N):
 	ind=np.random.random(N)
-	# ind[-5:]=-1
 	ind[-2]=np.nan
 	ind[ind<0.5]=-1
 	ind[ind>=0.5]=1
-	ind=np.array(ind,'i')
+	ind=np.array(ind,'f')
 	print(ind[0:100])
 
 	start_time = time.time()
@@ -107,7 +132,18 @@ def test_persistence(N):
 
 def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
 	"""
-	main file dsa
+	This function reads a state field created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index` and finds persistent periods for these statesself. It uses :meth:`optimized_period_identifier`
+
+	Parameters
+	----------
+		state_file: str
+			filepath of a state file. This file needs to have a variable `'state'` with -1 and 1 for the two different states. This file can be created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index`
+		out_file: str
+			filepath of a period file
+		seasons: dict, default=`{'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}}``
+			dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use `seasons={'year':{'months':range(12),'index':0}}`
+		overwrite: bool
+			overwrites existing files
 	"""
 
 	nc_in=Dataset(state_file,'r')
@@ -123,7 +159,6 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 
 	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
 	mon_year_axis=np.array([yr+mn*0.01 for yr,mn in zip(year,month)])
-	print(len(monthly_index))
 
 	state=nc_in.variables['state'][:,:,:]
 
@@ -192,8 +227,23 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	nc_out.close()
 	nc_in.close()
 
-
 def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]},overwrite=True):
+	"""
+	Classifies daily temperature anomalies into 'cold' and 'warm' days using the season and grid-cell specific median as threshold
+
+	Parameters
+	----------
+		anom_file: str
+			filepath of a temperature anomalies file. The variable that is read in can be specified with `var_name`.
+		out_file: str
+			filepath of a state file
+		var_name: str
+			name of the variable read in `anom_file`
+		seasons: dict, default=`{'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}}``
+			dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use `seasons={'year':{'months':range(12),'index':0}}`
+		overwrite: bool
+			overwrites existing files
+	"""
 	nc_in=Dataset(anom_file,'r')
 	time=nc_in.variables['time'][:]
 	datevar = num2date(time,units = nc_in.variables['time'].units,calendar = nc_in.variables['time'].calendar)
@@ -201,11 +251,10 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 
 	anom=nc_in.variables[var_name][:,:,:]
 
-
 	for season in seasons.keys():
-		days_in_seayson=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
-		seasonal_median=np.nanmedian(anom[days_in_seayson,:,:],axis=0)
-		anom[days_in_seayson,:,:]-=seasonal_median
+		days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
+		seasonal_median=np.nanmedian(anom[days_in_season,:,:],axis=0)
+		anom[days_in_season,:,:]-=seasonal_median
 
 	anom[anom>=0] = 1
 	anom[anom<0] = -1
@@ -226,8 +275,25 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 	nc_out.close()
 	nc_in.close()
 
-
 def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0.5,overwrite=True):
+	"""
+	Classifies daily precipitation into 'wet' and 'dry' days based on a `threshold`
+
+	Parameters
+	----------
+		anom_file: str
+			filepath of a daily precipitation file. The variable that is read in can be specified with `var_name`.
+		out_file: str
+			filepath of a state file
+		var_name: str
+			name of the variable read in `anom_file`
+		threshold: float,default=0.5
+			threshold used to differentiate between wet and dry days
+		unit_multiplier: float,default=1
+			factor to multiply daily precipiation with to get mm as units
+		overwrite: bool
+			overwrites existing files
+	"""
 	nc_in=Dataset(in_file,'r')
 	anom=np.ma.getdata(nc_in.variables[var_name][:,:,:])*unit_multiplier
 	mask=np.ma.getmask(nc_in.variables[var_name][:,:,:])
