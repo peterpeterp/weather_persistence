@@ -7,7 +7,6 @@ import os,sys,glob,time,collections
 import numpy as np
 from netCDF4 import Dataset,num2date
 import random as random
-import dimarray as da
 
 
 def period_identifier(ind):
