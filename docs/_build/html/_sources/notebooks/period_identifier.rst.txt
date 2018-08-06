@@ -34,11 +34,10 @@ Methods used to identify periods
 
 
 There are two functions identifying persistent periods in state array:
-:meth:``period_identifier`` and :meth:``optimized_period_identifier``.
-Both generate the same result. :meth:``period_identifier`` is a straight
-foreward implementation, :meth:``optimized_period_identifier`` is
-anoptimized implementation using ``collections`` and thus running
-faster.
+``period_identifier`` and ``optimized_period_identifier``. Both generate
+the same result. ``period_identifier`` is a straight foreward
+implementation, ``optimized_period_identifier`` is anoptimized
+implementation using ``collections`` and thus running faster.
 
 .. code:: ipython2
 

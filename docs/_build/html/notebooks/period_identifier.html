@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Modules" href="../api.html" />
+    <link rel="next" title="Functions" href="../api.html" />
     <link rel="prev" title="Tutorial" href="tutorial.html" /> 
 
   
@@ -81,7 +81,7 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Methods used to identify periods</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Functions</a></li>
 </ul>
 
             
@@ -175,11 +175,10 @@
 </pre></div>
 </div>
 <p>There are two functions identifying persistent periods in state array:
-:meth:<code class="docutils literal notranslate"><span class="pre">period_identifier</span></code> and :meth:<code class="docutils literal notranslate"><span class="pre">optimized_period_identifier</span></code>.
-Both generate the same result. :meth:<code class="docutils literal notranslate"><span class="pre">period_identifier</span></code> is a straight
-foreward implementation, :meth:<code class="docutils literal notranslate"><span class="pre">optimized_period_identifier</span></code> is
-anoptimized implementation using <code class="docutils literal notranslate"><span class="pre">collections</span></code> and thus running
-faster.</p>
+<code class="docutils literal notranslate"><span class="pre">period_identifier</span></code> and <code class="docutils literal notranslate"><span class="pre">optimized_period_identifier</span></code>. Both generate
+the same result. <code class="docutils literal notranslate"><span class="pre">period_identifier</span></code> is a straight foreward
+implementation, <code class="docutils literal notranslate"><span class="pre">optimized_period_identifier</span></code> is anoptimized
+implementation using <code class="docutils literal notranslate"><span class="pre">collections</span></code> and thus running faster.</p>
 <div class="code ipython2 highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span> <span class="s1">&#39;period_identifier():&#39;</span><span class="p">,</span><span class="n">period_identifier</span><span class="p">(</span><span class="n">ind</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">]</span>
 <span class="nb">print</span> <span class="s1">&#39;optimized_period_identifier():&#39;</span><span class="p">,</span><span class="n">optimized_period_identifier</span><span class="p">(</span><span class="n">ind</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">]</span>
 </pre></div>
@@ -212,7 +211,7 @@ faster.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../api.html" class="btn btn-neutral float-right" title="Modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../api.html" class="btn btn-neutral float-right" title="Functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tutorial.html" class="btn btn-neutral" title="Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
