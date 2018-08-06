@@ -146,30 +146,49 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="tutorial">
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast,
+.nboutput.nblast {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast + .nbinput {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+</style>
+<div class="section" id="tutorial">
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
-<div class="code ipython2 highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span><span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">netCDF4</span> <span class="k">import</span> <span class="n">Dataset</span><span class="p">,</span><span class="n">num2date</span>
-<span class="kn">import</span> <span class="nn">random</span> <span class="k">as</span> <span class="nn">random</span>
-<span class="kn">import</span> <span class="nn">dimarray</span> <span class="k">as</span> <span class="nn">da</span>
+<div class="highlight-ipython2 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span><span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">netCDF4</span> <span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span><span class="n">num2date</span>
+<span class="kn">import</span> <span class="nn">random</span> <span class="kn">as</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">dimarray</span> <span class="kn">as</span> <span class="nn">da</span>
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">&#39;../../&#39;</span><span class="p">))</span>
-<span class="kn">from</span> <span class="nn">persistence_functions</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">persistence_functions</span> <span class="kn">import</span> <span class="o">*</span>
 </pre></div>
 </div>
 <p><strong>Load detrended temperature anomalies</strong></p>
-<div class="code ipython2 highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tas</span><span class="o">=</span><span class="n">da</span><span class="o">.</span><span class="n">read_nc</span><span class="p">(</span><span class="s1">&#39;sample_tas.nc&#39;</span><span class="p">)[</span><span class="s1">&#39;tas&#39;</span><span class="p">]</span>
-<span class="nb">print</span> <span class="s1">&#39;percentiles&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">tas</span><span class="o">.</span><span class="n">ix</span><span class="p">[:,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,[</span><span class="mi">10</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">90</span><span class="p">])</span>
+<div class="highlight-ipython2 notranslate"><div class="highlight"><pre><span></span><span class="n">tas</span><span class="o">=</span><span class="n">da</span><span class="o">.</span><span class="n">read_nc</span><span class="p">(</span><span class="s1">&#39;sample_tas.nc&#39;</span><span class="p">)[</span><span class="s1">&#39;tas&#39;</span><span class="p">]</span>
+<span class="k">print</span> <span class="s1">&#39;percentiles&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">tas</span><span class="o">.</span><span class="n">ix</span><span class="p">[:,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,[</span><span class="mi">10</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">90</span><span class="p">])</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">percentiles</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.65030825</span>  <span class="mf">0.01166975</span>  <span class="mf">1.68142478</span><span class="p">]</span>
 </pre></div>
 </div>
 <p><strong>convert tas anomalies to a state array</strong></p>
-<div class="code ipython2 highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">temp_anomaly_to_ind</span><span class="p">(</span><span class="s1">&#39;sample_tas.nc&#39;</span><span class="p">,</span><span class="s1">&#39;sample_tas_state.nc&#39;</span><span class="p">,</span><span class="n">var_name</span><span class="o">=</span><span class="s1">&#39;tas&#39;</span><span class="p">,</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-ipython2 notranslate"><div class="highlight"><pre><span></span><span class="n">temp_anomaly_to_ind</span><span class="p">(</span><span class="s1">&#39;sample_tas.nc&#39;</span><span class="p">,</span><span class="s1">&#39;sample_tas_state.nc&#39;</span><span class="p">,</span><span class="n">var_name</span><span class="o">=</span><span class="s1">&#39;tas&#39;</span><span class="p">,</span><span class="n">overwrite</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="n">state</span><span class="o">=</span><span class="n">da</span><span class="o">.</span><span class="n">read_nc</span><span class="p">(</span><span class="s1">&#39;sample_tas_state.nc&#39;</span><span class="p">)[</span><span class="s1">&#39;state&#39;</span><span class="p">]</span>
-<span class="nb">print</span> <span class="s1">&#39;temperature anomaly:&#39;</span><span class="p">,</span><span class="n">tas</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">20</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-<span class="nb">print</span> <span class="s1">&#39;state:&#39;</span><span class="p">,</span><span class="n">state</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">20</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="k">print</span> <span class="s1">&#39;temperature anomaly:&#39;</span><span class="p">,</span><span class="n">tas</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">20</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="k">print</span> <span class="s1">&#39;state:&#39;</span><span class="p">,</span><span class="n">state</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">20</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">temperature</span> <span class="n">anomaly</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.2905025</span>  <span class="o">-</span><span class="mf">2.1703892</span>  <span class="o">-</span><span class="mf">2.124154</span>   <span class="o">-</span><span class="mf">1.8810792</span>  <span class="o">-</span><span class="mf">1.5038338</span>  <span class="o">-</span><span class="mf">2.1755633</span>
@@ -181,11 +200,11 @@
 </pre></div>
 </div>
 <p><strong>compute persistence</strong></p>
-<div class="code ipython2 highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">get_persistence</span><span class="p">(</span><span class="s1">&#39;sample_tas_state.nc&#39;</span><span class="p">,</span><span class="s1">&#39;sample_tas_period.nc&#39;</span><span class="p">,</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-ipython2 notranslate"><div class="highlight"><pre><span></span><span class="n">get_persistence</span><span class="p">(</span><span class="s1">&#39;sample_tas_state.nc&#39;</span><span class="p">,</span><span class="s1">&#39;sample_tas_period.nc&#39;</span><span class="p">,</span><span class="n">overwrite</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="n">period</span><span class="o">=</span><span class="n">da</span><span class="o">.</span><span class="n">read_nc</span><span class="p">(</span><span class="s1">&#39;sample_tas_period.nc&#39;</span><span class="p">)</span>
-<span class="nb">print</span> <span class="s1">&#39;state:&#39;</span><span class="p">,</span><span class="n">state</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">26</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-<span class="nb">print</span> <span class="s1">&#39;period length:&#39;</span><span class="p">,</span><span class="n">period</span><span class="p">[</span><span class="s1">&#39;period_length&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-<span class="nb">print</span> <span class="s1">&#39;period midpont:&#39;</span><span class="p">,</span><span class="n">period</span><span class="p">[</span><span class="s1">&#39;period_midpoints&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="k">print</span> <span class="s1">&#39;state:&#39;</span><span class="p">,</span><span class="n">state</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">26</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="k">print</span> <span class="s1">&#39;period length:&#39;</span><span class="p">,</span><span class="n">period</span><span class="p">[</span><span class="s1">&#39;period_length&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="k">print</span> <span class="s1">&#39;period midpont:&#39;</span><span class="p">,</span><span class="n">period</span><span class="p">[</span><span class="s1">&#39;period_midpoints&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ix</span><span class="p">[:</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span>  <span class="mf">1.</span>  <span class="mf">1.</span>  <span class="mf">1.</span>  <span class="mf">1.</span>  <span class="mf">1.</span>  <span class="mf">1.</span>  <span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">-</span><span class="mf">1.</span>
