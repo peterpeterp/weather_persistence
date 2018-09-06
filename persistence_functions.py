@@ -64,10 +64,6 @@ def optimized_period_identifier(ind):
 	"""
 	pers=ind.copy()*0
 
-	print(ind)
-	print(ind.shape)
-	print(pers.shape)
-
 	ind_tmp=ind.copy()
 	ind_tmp[ind_tmp!=1]=999
 	ind_tmp[ind_tmp==1]=0
@@ -160,9 +156,10 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
 	mon_year_axis=np.array([yr+mn*0.01 for yr,mn in zip(year,month)])
 
-	state=np.ma.getdata(nc_in.variables['state'][:,:,:])
-	mask=np.ma.getmask(nc_in.variables['state'][:,:,:])
+	state=np.ma.getdata(nc_in.variables['state'][:].squeeze())
+	mask=np.ma.getmask(nc_in.variables['state'][:].squeeze())
 	state[mask]=np.nan
+	print(state.shape)
 	print(np.nanpercentile(state,range(100)))
 
 
