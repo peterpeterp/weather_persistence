@@ -159,6 +159,8 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 	state=np.ma.getdata(nc_in.variables['state'][:,:,:])
 	mask=np.ma.getmask(nc_in.variables['state'][:,:,:])
 	state[mask]=np.nan
+	print(np.nanpercentile(state,range(100)))
+
 
 	#period=state.copy()*np.nan
 	period_length=state.copy()*np.nan
@@ -174,7 +176,7 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 		sys.stdout.write(progress); sys.stdout.flush()
 		for x in range(state.shape[2]):
 			start_time=time.time()
-			try:
+			if np.isfinite(np.nanmean(state[:,y,x])):
 				periods=optimized_period_identifier(state[:,y,x].copy())
 				identified_periods=np.where(periods!=0)[0]
 				per_num=len(identified_periods)
@@ -185,8 +187,8 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 				period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
 				period_season[0:per_num,y,x]=season[identified_periods]
 				period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
-			except:
-				print('issue at grid ',y,' ',x)
+			# except:
+			# 	print('issue at grid ',y,' ',x)
 			gc.collect()
 
 	per_num=max(period_number)
