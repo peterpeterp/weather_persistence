@@ -176,7 +176,7 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 		sys.stdout.write(progress); sys.stdout.flush()
 		for x in range(state.shape[2]):
 			start_time=time.time()
-			if np.isfinite(np.nanmean(state[:,y,x])):
+			if np.isfinite(np.nanmean(state[:,y,x])) and np.nanmean(state[:,y,x]) not in [-1,1,0]:
 				periods=optimized_period_identifier(state[:,y,x].copy())
 				identified_periods=np.where(periods!=0)[0]
 				per_num=len(identified_periods)
