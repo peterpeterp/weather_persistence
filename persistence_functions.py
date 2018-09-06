@@ -245,8 +245,6 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 			overwrites existing files
 	"""
 	nc=da.read_nc(anom_file)
-	print(nc)
-	print(nc['time'])
 	datevar=num2date(nc['time'].values,units = nc['time'].units)
 	month=np.array([date.month for date in datevar])
 
