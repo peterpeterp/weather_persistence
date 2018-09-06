@@ -318,3 +318,38 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 
 	nc_out.close()
 	nc_in.close()
+
+def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=True):
+	"""
+	Not documented yet
+	"""
+
+	nc_in=Dataset(tas_state_file,'r')
+	tas_state=np.ma.getdata(nc_in.variables[var_name][:,:,:])*unit_multiplier
+	mask=np.ma.getmask(nc_in.variables[var_name][:,:,:])
+	tas_state[mask]=np.nan
+
+	nc_in=Dataset(pr_state_file,'r')
+	pr_state=np.ma.getdata(nc_in.variables[var_name][:,:,:])*unit_multiplier
+	mask=np.ma.getmask(nc_in.variables[var_name][:,:,:])
+	pr_state[mask]=np.nan
+
+	compound_state = tas_state.copy()*np.nan
+	compound_state[ tas_state==1 & pr_state==-1 ] = 1
+	compound_state[ tas_state==-1 & pr_state==1 ] = -1
+
+	if overwrite: os.system('rm '+out_file)
+	nc_out=Dataset(out_file,'w')
+	for dname, the_dim in nc_in.dimensions.iteritems():	nc_out.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
+	for v_name, varin in nc_in.variables.iteritems():
+		if v_name!=var_name:
+			outVar = nc_out.createVariable(v_name, varin.datatype, varin.dimensions)
+			outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
+			outVar[:] = varin[:]
+		else:
+			outVar = nc_out.createVariable('state','i1',('time','lat','lon',),fill_value=2)
+			outVar.description='warm-dry (cold-wet) days are saved as 1 (-1)'
+			outVar[:] = anom
+
+	nc_out.close()
+	nc_in.close()
