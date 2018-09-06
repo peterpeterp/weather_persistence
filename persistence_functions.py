@@ -7,7 +7,7 @@ import os,sys,glob,time,collections
 import numpy as np
 from netCDF4 import Dataset,num2date
 import random as random
-
+import dimarray as da
 
 def period_identifier(ind):
 	"""
@@ -243,36 +243,26 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 		overwrite: bool
 			overwrites existing files
 	"""
-	nc_in=Dataset(anom_file,'r')
-	time=nc_in.variables['time'][:]
-	datevar = num2date(time,units = nc_in.variables['time'].units,calendar = nc_in.variables['time'].calendar)
-	month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
+	nc=da.read_nc(anom_file)
+	datevar=num2date(nc['time'],units = nc['time'].units)
+	month=np.array([date.month for date in datevar])
 
-	anom=nc_in.variables[var_name][:,:,:]
+	anom=nc[var_name][:,:,:]
+
+	state=nc[var_name].copy()*np.nan
 
 	for season in seasons.keys():
 		days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
-		seasonal_median=np.nanmedian(anom[days_in_season,:,:],axis=0)
-		anom[days_in_season,:,:]-=seasonal_median
+		seasonal_median=np.nanmedian(anom.ix[days_in_season,:,:],axis=0)
+		anom.ix[days_in_season,:,:]-=seasonal_median
 
-	anom[anom>=0] = 1
-	anom[anom<0] = -1
+	state[anom>=0] = 1
+	state[anom<0] = -1
 
 	if overwrite: os.system('rm '+out_file)
-	nc_out=Dataset(out_file,'w')
-	for dname, the_dim in nc_in.dimensions.iteritems():	nc_out.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
-	for v_name, varin in nc_in.variables.iteritems():
-		if v_name!=var_name:
-			outVar = nc_out.createVariable(v_name, varin.datatype, varin.dimensions)
-			outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
-			outVar[:] = varin[:]
-		else:
-			outVar = nc_out.createVariable('state','i1',('time','lat','lon',))
-			outVar.description='daily anomalies - seasonal medain of daily anomalies at grid cell level. positive anomalies -> 1 negative anomalies -> -1'
-			outVar[:] = anom
+	state.description='daily anomalies - seasonal medain of daily anomalies at grid cell level. positive anomalies -> 1 negative anomalies -> -1'
+	da.Dataset({'state':state}).write_nc(out_file)
 
-	nc_out.close()
-	nc_in.close()
 
 def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0.5,overwrite=True):
 	"""
@@ -293,63 +283,37 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 		overwrite: bool
 			overwrites existing files
 	"""
-	nc_in=Dataset(in_file,'r')
-	anom=np.ma.getdata(nc_in.variables[var_name][:,:,:])*unit_multiplier
-	mask=np.ma.getmask(nc_in.variables[var_name][:,:,:])
-	anom[mask]=np.nan
+	nc=da.read_nc(in_file)
+	pr=np.ma.getdata(nc[var_name][:,:,:])*unit_multiplier
+	mask=np.ma.getmask(nc[var_name][:,:,:])
+	pr[mask]=np.nan
 
+	state=nc[var_name].copy()*np.nan
 
-	anom[anom>=threshold] = 1
-	anom[anom<threshold] = -1
-	anom[anom**2!=1]=np.nan
+	state[pr>=threshold] = 1
+	state[pr<threshold] = -1
+	state[state**2!=1]=np.nan
+
+	#state.values=np.array(state.values,np.int)
 
 	if overwrite: os.system('rm '+out_file)
-	nc_out=Dataset(out_file,'w')
-	for dname, the_dim in nc_in.dimensions.iteritems():	nc_out.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
-	for v_name, varin in nc_in.variables.iteritems():
-		if v_name!=var_name:
-			outVar = nc_out.createVariable(v_name, varin.datatype, varin.dimensions)
-			outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
-			outVar[:] = varin[:]
-		else:
-			outVar = nc_out.createVariable('state','i1',('time','lat','lon',),fill_value=2)
-			outVar.description='dry (wet) days are days with precipiation below (above) '+str(threshold)+' and are saved as -1 (1)'
-			outVar[:] = anom
+	state.description='dry (wet) days are days with precipiation below (above) '+str(threshold)+' and are saved as -1 (1)'
+	da.Dataset({'state':state}).write_nc(out_file)
 
-	nc_out.close()
-	nc_in.close()
 
 def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=True):
 	"""
 	Not documented yet
 	"""
 
-	nc_in=Dataset(tas_state_file,'r')
-	tas_state=np.ma.getdata(nc_in.variables[var_name][:,:,:])*unit_multiplier
-	mask=np.ma.getmask(nc_in.variables[var_name][:,:,:])
-	tas_state[mask]=np.nan
+	tas_state=da.read_nc(tas_state_file)['state']
+	pr_state=da.read_nc(pr_state_file)['state']
 
-	nc_in=Dataset(pr_state_file,'r')
-	pr_state=np.ma.getdata(nc_in.variables[var_name][:,:,:])*unit_multiplier
-	mask=np.ma.getmask(nc_in.variables[var_name][:,:,:])
-	pr_state[mask]=np.nan
-
-	compound_state = tas_state.copy()*np.nan
-	compound_state[ tas_state==1 & pr_state==-1 ] = 1
-	compound_state[ tas_state==-1 & pr_state==1 ] = -1
+	compound_state = tas_state.copy()+pr_state.copy()*10
+	compound_state[compound_state==-9] = 1
+	compound_state[compound_state==9] = -1
+	compound_state[compound_state**2!=1]=np.nan
 
 	if overwrite: os.system('rm '+out_file)
-	nc_out=Dataset(out_file,'w')
-	for dname, the_dim in nc_in.dimensions.iteritems():	nc_out.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
-	for v_name, varin in nc_in.variables.iteritems():
-		if v_name!=var_name:
-			outVar = nc_out.createVariable(v_name, varin.datatype, varin.dimensions)
-			outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
-			outVar[:] = varin[:]
-		else:
-			outVar = nc_out.createVariable('state','i1',('time','lat','lon',),fill_value=2)
-			outVar.description='warm-dry (cold-wet) days are saved as 1 (-1)'
-			outVar[:] = anom
-
-	nc_out.close()
-	nc_in.close()
+	compound_state.description='warm-dry (cold-wet) days are saved as 1 (-1)'
+	da.Dataset({'state':compound_state}).write_nc(out_file)
