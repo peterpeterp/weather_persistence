@@ -64,6 +64,10 @@ def optimized_period_identifier(ind):
 	"""
 	pers=ind.copy()*0
 
+	print(ind)
+	print(ind.shape)
+	print(pers.shape)
+
 	ind_tmp=ind.copy()
 	ind_tmp[ind_tmp!=1]=999
 	ind_tmp[ind_tmp==1]=0
