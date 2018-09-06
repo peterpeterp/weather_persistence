@@ -310,6 +310,15 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 
 	tas_state=da.read_nc(tas_state_file)['state']
 	pr_state=da.read_nc(pr_state_file)['state']
+	print(np.nanpercentile(tas_state,range(100)))
+	print(np.nanpercentile(pr_state,range(100)))
+
+	nc=da.read_nc(pr_state_file)
+	pr_state=np.ma.getdata(nc['state'][:,:,:])
+	mask=np.ma.getmask(nc['state'][:,:,:])
+	pr_state[mask]=np.nan
+	print(np.nanpercentile(pr_state,range(100)))
+
 
 	compound_state = tas_state.copy()+pr_state.copy()*10
 	print(np.nanpercentile(compound_state,range(100)))
