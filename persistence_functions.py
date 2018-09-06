@@ -290,7 +290,6 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 	# pr[mask]=np.nan
 	pr=nc[var_name].values*unit_multiplier
 
-
 	state=nc[var_name].copy()*np.nan
 
 	state[pr>=threshold] = 1
