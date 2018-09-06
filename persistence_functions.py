@@ -3,7 +3,7 @@
 #
 # License: GNU General Public License v3.0
 
-import os,sys,glob,time,collections
+import os,sys,glob,time,collections,gc
 import numpy as np
 from netCDF4 import Dataset,num2date
 import random as random
@@ -28,17 +28,20 @@ def period_identifier(ind):
 
 	state,count=ind[0],1
 	for i in range(1,len(ind)):
-		if ind[i]!=state:
+		if np.isfinite(ind[i])==False and np.isfinite(state):
 			pers[i-count/2-1]=state*count
-			count=0
+			state=np.nan
+			count=1
+		elif np.isfinite(ind[i]) and np.isfinite(state)==False:
+			state=ind[i]
+			count=1
+		elif ind[i]==state*-1:
+			pers[i-count/2-1]=state*count
+			count=1
 			state*=-1
-			if np.isfinite(ind[i])==False:
-				pers[i]=np.nan
-				count=0
-		if ind[i]==state:
+		elif ind[i]==state:
 			count+=1
 
-	# still an issue with last period??
 	if state==1:	pers[i-count/2]=state*count
 	if state==-1:	pers[i-count/2]=state*count
 
@@ -61,61 +64,51 @@ def optimized_period_identifier(ind):
 	"""
 	pers=ind.copy()*0
 
-	ind[ind<0]=0
+	ind_tmp=ind.copy()
+	ind_tmp[ind_tmp!=1]=999
+	ind_tmp[ind_tmp==1]=0
+	ind_tmp[ind_tmp==999]=1
+	su=np.cumsum(ind_tmp)
+	counter=collections.Counter(su)
 
-	cuts=list(np.where(np.isfinite(ind)==False)[0])
-	cuts.append(len(ind))
-	cut_start=0
+	index=0
+	for count,val in zip(counter.values(),counter.keys()):
+		index+=count
+		if count>=1:
+			pers[index-(count-1)/2-1]=1*(count-1)
+	# correct start
+	if len(ind_tmp)==1:	pers[0]=1
+	else:
+		if ind_tmp[0]==0 and ind_tmp[1]==1:	pers[0]=1
+		if ind_tmp[0]==0 and ind_tmp[1]==0:	pers[np.where(pers<0)[0][0]]+=1
 
-	if len(np.where(ind==0)[0])==len(ind):
-		return pers
+	ind_tmp=ind.copy()
+	ind_tmp[ind_tmp!=-1]=999
+	ind_tmp[ind_tmp==-1]=0
+	ind_tmp[ind_tmp==999]=1
+	su=np.cumsum(ind_tmp)
+	counter=collections.Counter(su)
 
-	for cut_stop in cuts:
-		if cut_start==cut_stop:
-			cut_start=cut_stop+1
-		else:
-			ind_cut=ind[cut_start:cut_stop]
-			pers_cut=ind_cut.copy()*0
-
-			su=np.cumsum(ind_cut)
-			counter=collections.Counter(su)
-
-			index=0
-			for count,val in zip(counter.values(),counter.keys()):
-				index+=count
-				if count>1:
-					pers_cut[index-(count-1)/2-1]=-1*(count-1)
-			# correct start
-			if len(ind_cut)==1:	pers_cut[0]=-1
-			else:
-				if ind_cut[0]==0 and ind_cut[1]==1:	pers_cut[0]=-1
-				if ind_cut[0]==0 and ind_cut[1]==0:	pers_cut[np.where(pers_cut<0)[0][0]]-=1
-
-			ind_cut=-ind_cut+1
-			su=ind_cut.copy()*0 + np.nan_to_num(ind_cut).cumsum()
-			counter=collections.Counter(su)
-
-			index=0
-			for count,val in zip(counter.values(),counter.keys()):
-				index+=count
-				if count>1:
-					pers_cut[index-(count-1)/2-1]=count-1
-			# correct start
-			if len(ind_cut)==1:	pers_cut[0]=1
-			else:
-				if ind_cut[0]==0 and ind_cut[1]==1:	pers_cut[0]=1
-				if ind_cut[0]==0 and ind_cut[1]==0:	pers_cut[np.where(pers_cut>0)[0][0]]+=1
-
-			pers[cut_start:cut_stop]=pers_cut
-			cut_start=cut_stop+1
+	index=0
+	for count,val in zip(counter.values(),counter.keys()):
+		index+=count
+		if count>1:
+			pers[index-(count-1)/2-1]=-(count-1)
+	# correct start
+	if len(ind_tmp)==1:	pers[0]=-1
+	else:
+		if ind_tmp[0]==0 and ind_tmp[1]==1:	pers[0]=-1
+		if ind_tmp[0]==0 and ind_tmp[1]==0:	pers[np.where(pers<0)[0][0]]-=1
 
 	return(pers)
 
+
 def test_persistence(N):
 	ind=np.random.random(N)
-	ind[-2]=np.nan
+	ind[np.where((ind<0.6) & (ind>0.4))[0]]=np.nan
 	ind[ind<0.5]=-1
 	ind[ind>=0.5]=1
+	ind[:4]=[1,np.nan,1,np.nan]
 	ind=np.array(ind,'f')
 	print(ind[0:100])
 
@@ -129,7 +122,7 @@ def test_persistence(N):
 
 #test_persistence(100)
 
-def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
+def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
 	"""
 	This function reads a state field created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index` and finds persistent periods for these statesself. It uses :meth:`optimized_period_identifier`
 
@@ -148,7 +141,11 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	nc_in=Dataset(state_file,'r')
 	# handle time
 	time_axis=nc_in.variables['time'][:]
-	datevar = num2date(time_axis,units = nc_in.variables['time'].units,calendar = nc_in.variables['time'].calendar)
+	if 'calendar' in nc_in.variables['time'].ncattrs():
+		datevar = num2date(time_axis,units = nc_in.variables['time'].units,calendar = nc_in.variables['time'].calendar)
+	else:
+		datevar = num2date(time_axis,units = nc_in.variables['time'].units)
+
 	month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
 	year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
 
@@ -167,9 +164,12 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 	period_midpoints=state.copy()*np.nan
 	period_season=state.copy()*np.nan
 	period_monthly_index=state.copy()*np.nan
+	gc.collect()
 
 	period_number=[]
-	for y in range(state.shape[1]):
+	print('finding periods\n10------50-------100')
+	for y,progress in zip(range(state.shape[1]), np.array([['-']+['']*(state.shape[1]/20+1)]*20).flatten()[0:state.shape[1]]):
+		sys.stdout.write(progress); sys.stdout.flush()
 		for x in range(state.shape[2]):
 			start_time=time.time()
 			try:
@@ -185,40 +185,41 @@ def get_persistence(state_file,out_file,seasons={'MAM':{'months':[3,4,5],'index'
 				period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
 			except:
 				print('issue at grid ',y,' ',x)
+			gc.collect()
 
 	per_num=max(period_number)
 
 	if overwrite: os.system('rm '+out_file)
 	nc_out=Dataset(out_file,'w')
 	for dname, the_dim in nc_in.dimensions.iteritems():
-		if dname in ['lon','lat']:nc_out.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
+		if dname in [lon_name,lat_name]:nc_out.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
 	nc_out.createDimension('period_id', per_num)
 
 	for v_name, varin in nc_in.variables.iteritems():
-		if v_name in ['lon','lat']:
+		if v_name in [lon_name,lat_name]:
 			outVar = nc_out.createVariable(v_name, varin.datatype, varin.dimensions)
 			outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
 			outVar[:] = varin[:]
 
-	outVar = nc_out.createVariable('period_length','i2',('period_id','lat','lon',))
+	outVar = nc_out.createVariable('period_length','i2',('period_id',lat_name,lon_name,))
 	outVar.long_name='period length in days'
 	outVar[:] = period_length[0:per_num,:,:]
 
-	outVar = nc_out.createVariable('period_state','i1',('period_id','lat','lon',))
+	outVar = nc_out.createVariable('period_state','i1',('period_id',lat_name,lon_name,))
 	outVar.long_name='period type'
 	outVar[:] = period_state[0:per_num,:,:]
 
-	outVar = nc_out.createVariable('period_midpoints','f',('period_id','lat','lon',))
+	outVar = nc_out.createVariable('period_midpoints','f',('period_id',lat_name,lon_name,))
 	outVar.long_name='midpoint of period'
 	outVar[:] = period_midpoints[0:per_num,:,:]
 
-	outVar = nc_out.createVariable('period_monthly_index','i2',('period_id','lat','lon',))
+	outVar = nc_out.createVariable('period_monthly_index','i2',('period_id',lat_name,lon_name,))
 	outVar.long_name='monthly index 0 to number of years * 12'
 	outVar.first_time_step=str(year[0])+' - '+str(min(month))
 	outVar.last_time_step=str(year[-1])+' - '+str(max(month))
 	outVar[:] = period_monthly_index[0:per_num,:,:]
 
-	outVar = nc_out.createVariable('period_season','i1',('period_id','lat','lon',))
+	outVar = nc_out.createVariable('period_season','i1',('period_id',lat_name,lon_name,))
 	outVar.long_name='season in which the midpoint of period is located'
 	outVar.description=str(seasons)
 	outVar[:] = period_season[0:per_num,:,:]
@@ -317,3 +318,71 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 	if overwrite: os.system('rm '+out_file)
 	compound_state.description='warm-dry (cold-wet) days are saved as 1 (-1)'
 	da.Dataset({'state':compound_state}).write_nc(out_file)
+
+
+
+# def optimized_period_identifier(ind):
+# 	"""
+# 	This function identifies persistent periods using collections. It isn't a straight foreward implementation but runs faster than :meth:`period_identifier`
+#
+# 	Parameters
+# 	----------
+# 		ind: np.array
+# 			array containing -1 and 1 corresponding to two state
+#
+# 	Returns
+# 	--------
+# 		pers: np.array
+# 			array of the same length as `ind` containing the length of identified periods. Periods of state -1 are have negative lengths. The period length of a period is placed in the center of the period. All other values are 0.
+# 	"""
+# 	pers=ind.copy()*0
+#
+# 	ind[ind<0]=0
+#
+# 	cuts=list(np.where(np.isfinite(ind)==False)[0])
+# 	cuts.append(len(ind))
+# 	cut_start=0
+#
+# 	if len(np.where(ind==0)[0])==len(ind):
+# 		return pers
+#
+# 	for cut_stop in cuts:
+# 		if cut_start==cut_stop:
+# 			cut_start=cut_stop+1
+# 		else:
+# 			ind_cut=ind[cut_start:cut_stop]
+# 			pers_cut=ind_cut.copy()*0
+#
+# 			su=np.cumsum(ind_cut)
+# 			counter=collections.Counter(su)
+#
+# 			index=0
+# 			for count,val in zip(counter.values(),counter.keys()):
+# 				index+=count
+# 				if count>1:
+# 					pers_cut[index-(count-1)/2-1]=-1*(count-1)
+# 			# correct start
+# 			if len(ind_cut)==1:	pers_cut[0]=-1
+# 			else:
+# 				if ind_cut[0]==0 and ind_cut[1]==1:	pers_cut[0]=-1
+# 				if ind_cut[0]==0 and ind_cut[1]==0:	pers_cut[np.where(pers_cut<0)[0][0]]-=1
+#
+# 			ind_cut=-ind_cut+1
+# 			su=ind_cut.copy()*0 + np.nan_to_num(ind_cut).cumsum()
+# 			counter=collections.Counter(su)
+#
+# 			index=0
+# 			for count,val in zip(counter.values(),counter.keys()):
+# 				index+=count
+# 				if count>1:
+# 					pers_cut[index-(count-1)/2-1]=count-1
+# 			# correct start
+# 			if len(ind_cut)==1:	pers_cut[0]=1
+# 			else:
+# 				if ind_cut[0]==0 and ind_cut[1]==1:	pers_cut[0]=1
+# 				if ind_cut[0]==0 and ind_cut[1]==0:	pers_cut[np.where(pers_cut>0)[0][0]]+=1
+#
+# 			pers[cut_start:cut_stop]=pers_cut
+# 			cut_start=cut_stop+1
+#
+# 	return(pers)
