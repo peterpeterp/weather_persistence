@@ -156,7 +156,9 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
 	mon_year_axis=np.array([yr+mn*0.01 for yr,mn in zip(year,month)])
 
-	state=nc_in.variables['state'][:,:,:]
+	state=np.ma.getdata(nc_in.variables['state'][:,:,:])
+	mask=np.ma.getmask(nc_in.variables['state'][:,:,:])
+	state[mask]=np.nan
 
 	#period=state.copy()*np.nan
 	period_length=state.copy()*np.nan
