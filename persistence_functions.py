@@ -323,14 +323,16 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 	mask=np.ma.getmask(nc['state'][:,:,:])
 	pr_state[mask]=np.nan
 
-	compound_state = tas_state.copy()+pr_state.copy()*10
-	print(np.nanpercentile(compound_state,range(100)))
-	compound_state[compound_state==-9] = 1
-	compound_state[compound_state==9] = -1
-	compound_state[compound_state**2!=1]=np.nan
+	compound_state_tmp = tas_state.copy()+pr_state.copy()*10
+	print(np.nanpercentile(compound_state_tmp,range(100)))
+	compound_state_tmp[compound_state_tmp==-9] = 1
+	compound_state_tmp[compound_state_tmp==9] = -1
+	compound_state_tmp[compound_state_tmp**2!=1]=np.nan
 
 
 	if overwrite: os.system('rm '+out_file)
+	compound_state=da.read_nc(tas_state_file)['state'].copy()
+	compound_state.values=compound_state_tmp
 	compound_state.description='warm-dry (cold-wet) days are saved as 1 (-1)'
 	da.Dataset({'state':compound_state}).write_nc(out_file)
 
