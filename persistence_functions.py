@@ -312,6 +312,7 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 	pr_state=da.read_nc(pr_state_file)['state']
 
 	compound_state = tas_state.copy()+pr_state.copy()*10
+	print(np.nanpercentile(compound_state,range(100)))
 	compound_state[compound_state==-9] = 1
 	compound_state[compound_state==9] = -1
 	compound_state[compound_state**2!=1]=np.nan
