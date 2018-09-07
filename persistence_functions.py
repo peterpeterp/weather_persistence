@@ -253,7 +253,7 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 	datevar=num2date(nc['time'].values,units = nc['time'].units)
 	month=np.array([date.month for date in datevar])
 
-	anom=nc[var_name].values.squeeze()
+	anom=nc[var_name].squeeze()
 
 	state=nc[var_name].copy()*np.nan
 
@@ -290,12 +290,9 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 			overwrites existing files
 	"""
 	nc=da.read_nc(in_file)
-	pr=np.ma.getdata(nc[var_name].values.squeeze())*unit_multiplier
-	mask=np.ma.getmask(nc[var_name].values.squeeze())
-	pr[mask]=np.nan
-	# pr=nc[var_name].values*unit_multiplier
+	pr=nc[var_name].squeeze()*unit_multiplier
 
-	state=nc[var_name].copy()*np.nan
+	state=nc[var_name].squeeze().copy()*np.nan
 
 	state[pr>=threshold] = 1
 	state[pr<threshold] = -1
@@ -319,25 +316,19 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 	# print(np.nanpercentile(pr_state,range(100)))
 
 	nc=da.read_nc(tas_state_file)
-	tas_state=np.ma.getdata(nc['state'].values.squeeze())
-	mask=np.ma.getmask(nc['state'].values.squeeze())
-	tas_state[mask]=np.nan
+	tas_state=nc['state'].squeeze()
 
 	nc=da.read_nc(pr_state_file)
-	pr_state=np.ma.getdata(nc['state'].values.squeeze())
-	mask=np.ma.getmask(nc['state'].values.squeeze())
-	pr_state[mask]=np.nan
+	pr_state=nc['state'].squeeze()
 
-	compound_state_tmp = tas_state.copy()+pr_state.copy()*10
-	print(np.nanpercentile(compound_state_tmp,range(100)))
-	compound_state_tmp[compound_state_tmp==-9] = 1
-	compound_state_tmp[compound_state_tmp==9] = -1
-	compound_state_tmp[compound_state_tmp**2!=1]=np.nan
+	compound_state = tas_state.copy()+pr_state.copy()*10
+	print(np.nanpercentile(compound_state,range(100)))
+	compound_state[compound_state==-9] = 1
+	compound_state[compound_state==9] = -1
+	compound_state[compound_state**2!=1]=np.nan
 
 
 	if overwrite: os.system('rm '+out_file)
-	compound_state=da.read_nc(tas_state_file)['state'].copy()
-	compound_state.values=compound_state_tmp
 	compound_state.description='warm-dry (cold-wet) days are saved as 1 (-1)'
 	da.Dataset({'state':compound_state}).write_nc(out_file)
 
