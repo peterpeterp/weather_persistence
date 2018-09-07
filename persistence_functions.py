@@ -193,6 +193,9 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 					print('issue at grid ',y,' ',x)
 			gc.collect()
 
+	if len(period_number)==0:
+		return 'fail'
+		
 	per_num=max(period_number)
 
 	if overwrite: os.system('rm '+out_file)
