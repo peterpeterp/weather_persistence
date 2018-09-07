@@ -255,7 +255,7 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 
 	anom=nc[var_name].squeeze()
 
-	state=nc[var_name].copy()*np.nan
+	state=nc[var_name].squeeze().copy()*np.nan
 
 	for season in seasons.keys():
 		days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
