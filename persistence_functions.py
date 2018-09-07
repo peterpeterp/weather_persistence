@@ -253,7 +253,7 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 	datevar=num2date(nc['time'].values,units = nc['time'].units)
 	month=np.array([date.month for date in datevar])
 
-	anom=nc[var_name][:,:,:]
+	anom=nc[var_name].values.squeeze()
 
 	state=nc[var_name].copy()*np.nan
 
@@ -290,8 +290,8 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 			overwrites existing files
 	"""
 	nc=da.read_nc(in_file)
-	pr=np.ma.getdata(nc[var_name][:,:,:])*unit_multiplier
-	mask=np.ma.getmask(nc[var_name][:,:,:])
+	pr=np.ma.getdata(nc[var_name].values.squeeze())*unit_multiplier
+	mask=np.ma.getmask(nc[var_name].values.squeeze())
 	pr[mask]=np.nan
 	# pr=nc[var_name].values*unit_multiplier
 
@@ -319,13 +319,13 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 	# print(np.nanpercentile(pr_state,range(100)))
 
 	nc=da.read_nc(tas_state_file)
-	tas_state=np.ma.getdata(nc['state'][:,:,:])
-	mask=np.ma.getmask(nc['state'][:,:,:])
+	tas_state=np.ma.getdata(nc['state'].values.squeeze())
+	mask=np.ma.getmask(nc['state'].values.squeeze())
 	tas_state[mask]=np.nan
 
 	nc=da.read_nc(pr_state_file)
-	pr_state=np.ma.getdata(nc['state'][:,:,:])
-	mask=np.ma.getmask(nc['state'][:,:,:])
+	pr_state=np.ma.getdata(nc['state'].values.squeeze())
+	mask=np.ma.getmask(nc['state'].values.squeeze())
 	pr_state[mask]=np.nan
 
 	compound_state_tmp = tas_state.copy()+pr_state.copy()*10
