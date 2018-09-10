@@ -5,7 +5,7 @@
 
 import os,sys,glob,time,collections,gc
 import numpy as np
-from netCDF4 import Dataset,netcdftime,num2date
+from netCDF4 import Dataset,num2date
 import cPickle as pickle
 import dimarray as da
 from scipy.optimize import curve_fit
