@@ -186,8 +186,8 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 				period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
 			gc.collect()
 
-	if len(period_number)==0:
-		return 'fail'
+	# if len(period_number)==0:
+	# 	return 'fail'
 
 	per_num=max(period_number)
 
