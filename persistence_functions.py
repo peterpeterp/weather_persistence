@@ -190,7 +190,16 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 					period_season[0:per_num,y,x]=season[identified_periods]
 					period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
 				except:
-					pass
+					periods=optimized_period_identifier(state[:,y,x].copy())
+					identified_periods=np.where(periods!=0)[0]
+					per_num=len(identified_periods)
+					period_number.append(per_num)
+
+					period_length[0:per_num,y,x]=periods[identified_periods]
+					period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
+					period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
+					period_season[0:per_num,y,x]=season[identified_periods]
+					period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
 			gc.collect()
 
 	if len(period_number)==0:
