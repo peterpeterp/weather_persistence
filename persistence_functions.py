@@ -77,10 +77,8 @@ def optimized_period_identifier(ind):
 		if count>=1:
 			pers[index-(count-1)/2-1]=1*(count-1)
 	# correct start
-	if len(ind_tmp)==1:	pers[0]=1
-	else:
-		if ind_tmp[0]==0 and ind_tmp[1]==1:	pers[0]=1
-		if ind_tmp[0]==0 and ind_tmp[1]==0:	pers[np.where(pers<0)[0][0]]+=1
+	if ind_tmp[0]==0 and ind_tmp[1]==1:	pers[0]=1
+	if ind_tmp[0]==0 and ind_tmp[1]==0:	pers[np.where(pers>0)[0][0]]+=1
 
 	ind_tmp=ind.copy()
 	ind_tmp[ind_tmp!=-1]=999
@@ -95,10 +93,8 @@ def optimized_period_identifier(ind):
 		if count>1:
 			pers[index-(count-1)/2-1]=-(count-1)
 	# correct start
-	if len(ind_tmp)==1:	pers[0]=-1
-	else:
-		if ind_tmp[0]==0 and ind_tmp[1]==1:	pers[0]=-1
-		if ind_tmp[0]==0 and ind_tmp[1]==0:	pers[np.where(pers<0)[0][0]]-=1
+	if ind_tmp[0]==0 and ind_tmp[1]==1:	pers[0]=-1
+	if ind_tmp[0]==0 and ind_tmp[1]==0:	pers[np.where(pers<0)[0][0]]-=1
 
 	return(pers)
 
@@ -108,7 +104,7 @@ def test_persistence(N):
 	ind[np.where((ind<0.6) & (ind>0.4))[0]]=np.nan
 	ind[ind<0.5]=-1
 	ind[ind>=0.5]=1
-	ind[:4]=[1,np.nan,1,np.nan]
+	ind[:5]=[-1,-1,np.nan,1,np.nan]
 	ind=np.array(ind,'f')
 	print(ind[0:100])
 
@@ -178,28 +174,16 @@ def get_persistence(state_file,out_file, lat_name='lat', lon_name='lon', seasons
 		for x in range(state.shape[2]):
 			start_time=time.time()
 			if np.isfinite(np.nanmean(state[:,y,x])) and np.nanmean(state[:,y,x]) not in [-1,1,0]:
-				try:
-					periods=optimized_period_identifier(state[:,y,x].copy())
-					identified_periods=np.where(periods!=0)[0]
-					per_num=len(identified_periods)
-					period_number.append(per_num)
+				periods=optimized_period_identifier(state[:,y,x].copy())
+				identified_periods=np.where(periods!=0)[0]
+				per_num=len(identified_periods)
+				period_number.append(per_num)
 
-					period_length[0:per_num,y,x]=periods[identified_periods]
-					period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
-					period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
-					period_season[0:per_num,y,x]=season[identified_periods]
-					period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
-				except:
-					periods=optimized_period_identifier(state[:,y,x].copy())
-					identified_periods=np.where(periods!=0)[0]
-					per_num=len(identified_periods)
-					period_number.append(per_num)
-
-					period_length[0:per_num,y,x]=periods[identified_periods]
-					period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
-					period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
-					period_season[0:per_num,y,x]=season[identified_periods]
-					period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
+				period_length[0:per_num,y,x]=periods[identified_periods]
+				period_state[0:per_num,y,x]=np.sign(periods[identified_periods])
+				period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
+				period_season[0:per_num,y,x]=season[identified_periods]
+				period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
 			gc.collect()
 
 	if len(period_number)==0:
