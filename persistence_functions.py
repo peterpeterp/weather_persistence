@@ -109,12 +109,20 @@ def test_persistence(N):
 	print(ind[0:100])
 
 	start_time = time.time()
-	print(period_identifier(ind)[0:100])
+	basic=period_identifier(ind)
+	print(basic[0:100])
 	print("--- basic_and_understandable %s seconds ---" % (time.time() - start_time))
 
 	start_time = time.time()
-	print(optimized_period_identifier(ind)[0:100])
+	optimized=optimized_period_identifier(ind)
+	print(optimized[0:100])
 	print("--- optimized_period_identifier %s seconds ---" % (time.time() - start_time))
+
+	start_time = time.time()
+	optimized_old=optimized_period_identifier_old(ind)
+	print(optimized_old[0:100])
+	print("--- optimized_period_identifier_old %s seconds ---" % (time.time() - start_time))
+
 
 #test_persistence(100)
 
@@ -247,7 +255,7 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 			overwrites existing files
 	"""
 	nc=da.read_nc(anom_file)
-	datevar=num2date(nc['time'].values,units = nc['time'].units)
+	datevar=num2date(nc['time'].values,units = nc['time'].units, calendar = nc_in.variables['time'].calendar)
 	month=np.array([date.month for date in datevar])
 
 	anom=nc[var_name].squeeze()
@@ -330,8 +338,8 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 	da.Dataset({'state':compound_state}).write_nc(out_file)
 
 
-
-# def optimized_period_identifier(ind):
+#
+# def optimized_period_identifier_old(ind):
 # 	"""
 # 	This function identifies persistent periods using collections. It isn't a straight foreward implementation but runs faster than :meth:`period_identifier`
 #
