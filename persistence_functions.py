@@ -304,8 +304,8 @@ def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',p
 	for yi in range(state.shape[1]):
 		for xi in range(state.shape[2]):
 			thresh = np.nanpercentile(pr.ix[:,yi,xi],percentiles.ix[yi,xi],axis=0)
-			state.ix[:,yi,xi][ pr.ix[:,yi,xi] >= percentiles.ix[yi,xi] ] = 1
-			state.ix[:,yi,xi][ pr.ix[:,yi,xi] < percentiles.ix[yi,xi] ] = -1
+			state.ix[:,yi,xi][ pr.ix[:,yi,xi] >= thresh ] = 1
+			state.ix[:,yi,xi][ pr.ix[:,yi,xi] < thresh ] = -1
 
 	state[state**2!=1]=np.nan
 
