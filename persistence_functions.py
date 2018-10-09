@@ -275,7 +275,7 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 	da.Dataset({'state':state}).write_nc(out_file)
 
 
-def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',percentile_multiplier=1,overwrite=True):
+def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',percentile_multiplier=1, unit_multiplier=86400, overwrite=True):
 	"""
 	Classifies daily precipitation into 'wet' and 'dry' days based on a `threshold`
 
@@ -294,26 +294,35 @@ def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',p
 		overwrite: bool
 			overwrites existing files
 	"""
-	nc=da.read_nc(in_file)
-	pr=nc[var_name].squeeze()
 
+	nc=da.read_nc(in_file)
+	datevar=num2date(nc['time'].values,units = nc['time'].units, calendar = nc['time'].calendar)
+	month=np.array([date.month for date in datevar])
+
+	pr=nc[var_name].squeeze()
 	state=nc[var_name].squeeze().copy()*np.nan
 
 	percentiles = da.read_nc(percentile_field)['qu'].squeeze()*percentile_multiplier
+	threshold = percentiles.copy()*np.nan
 
+	seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]}
 	for yi in range(state.shape[1]):
 		for xi in range(state.shape[2]):
-			thresh = np.nanpercentile(pr.ix[:,yi,xi],percentiles.ix[yi,xi],axis=0)
-			state.ix[:,yi,xi][ pr.ix[:,yi,xi] >= thresh ] = 1
-			state.ix[:,yi,xi][ pr.ix[:,yi,xi] < thresh ] = -1
+			for season,seas_i in (['DJF','MAM','JJA','SON'],range(4)):
+				days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
+				thresh = np.nanpercentile(pr.ix[days_in_season,yi,xi],-percentiles.ix[seas_i,yi,xi]+100,axis=0)
+				state.ix[days_in_season,yi,xi][ pr.ix[days_in_season,yi,xi] >= thresh ] = 1
+				state.ix[days_in_season,yi,xi][ pr.ix[days_in_season,yi,xi] < thresh ] = -1
 
+				threshold.ix[seas_i,yi,xi] = thresh * unit_multiplier
 
 	state[state**2!=1]=np.nan
 
 	#state.values=np.array(state.values,np.int)
 	if overwrite: os.system('rm '+out_file)
-	state.description='dry (wet) days are days with precipiation below (above) threshold based on percentiles from '+percentile_field+' and are saved as -1 (1)'
+	state.description='dry (wet) days are days with precipiation below (above) threshold based on seasonal percentiles from '+percentile_field+' and are saved as -1 (1)'
 	da.Dataset({'state':state}).write_nc(out_file)
+	da.Dataset({'threshold':threshold}).write_nc(out_file.replace('_state','_threshold'))
 
 def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0.5,overwrite=True):
 	"""
