@@ -306,14 +306,13 @@ def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',p
 	threshold = percentiles.copy()*np.nan
 
 	seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]}
-	for yi in range(state.shape[1]):
-		for xi in range(state.shape[2]):
+	for yi in range(state.shape[1])[80:82]:
+		for xi in range(state.shape[2])[30:32]:
 			for season,seas_i in zip(['DJF','MAM','JJA','SON'],range(4)):
 				days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
 				thresh = np.nanpercentile(pr.ix[days_in_season,yi,xi],-percentiles.ix[seas_i,yi,xi]+100,axis=0)
 				state.ix[days_in_season,yi,xi][ pr.ix[days_in_season,yi,xi] >= thresh ] = 1
 				state.ix[days_in_season,yi,xi][ pr.ix[days_in_season,yi,xi] < thresh ] = -1
-
 				threshold.ix[seas_i,yi,xi] = thresh * unit_multiplier
 
 	state[state**2!=1]=np.nan
