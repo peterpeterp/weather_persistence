@@ -304,6 +304,8 @@ def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',p
 	pr_anom=nc[var_name].squeeze().copy()
 
 	percentiles = da.read_nc(percentile_field)['qu'].squeeze()*percentile_multiplier
+	percentiles[percentiles>100] = 100
+	percentiles[percentiles<0] = 0
 	threshold = percentiles.copy()*np.nan
 
 	seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]}
