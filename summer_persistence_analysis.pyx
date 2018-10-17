@@ -45,7 +45,7 @@ def summer_period_analysis(np.ndarray[np_int_t, ndim=3] per_len, np.ndarray[np_i
           if seas[i,y,x]==1 and state[i,y,x]==1 and per_len[i,y,x]>=x90_thresh[y,x] and year_var[per_mid[i,y,x]]==yr:
             low=int(abs(per_len[i,y,x])/2.)
             high=int(round(abs(per_len[i,y,x])/2.))
-            shift=low%2
+            shift=-(abs(per_len[i,y,x])%2-1)
             days=range(per_mid[i,y,x]-low+shift,per_mid[i,y,x]+high+shift)
             #days=range(per_mid[i,y,x]-int(abs(per_len[i,y,x])/2.),per_mid[i,y,x]+int(round(abs(per_len[i,y,x])/2.)))
             original_period_id[count,y,x]=i
