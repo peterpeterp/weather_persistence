@@ -32,7 +32,7 @@ def summer_period_analysis(np.ndarray[np_int_t, ndim=3] per_len, np.ndarray[np_i
   TXx_in_x90-=99
   original_period_id-=99
 
-  print Ni_new
+  #print Ni_new
 
   cdef int count=0
   for x in range(Nx):
@@ -56,9 +56,9 @@ def summer_period_analysis(np.ndarray[np_int_t, ndim=3] per_len, np.ndarray[np_i
             TX_hw=np.max(np.concatenate((tas[days,y,x],[TX_hw])))
             count+=1
 
-        if Txx == TX_hw:
-          TXx_in_x90[yr_id,y,x]=1
-        else:
-          TXx_in_x90[yr_id,y,x]=0
+#        if Txx == TX_hw:
+#          TXx_in_x90[yr_id,y,x]=1
+#        else:
+#          TXx_in_x90[yr_id,y,x]=0
 
-  return  x90_hottest_day,x90_cum_temp,x90_mean_temp,x90_hottest_day_shift,TXx_in_x90,original_period_id
+  return  x90_hottest_day,x90_cum_temp,x90_mean_temp,x90_hottest_day_shift,TXx_in_x90,original_period_id,Ni_new
