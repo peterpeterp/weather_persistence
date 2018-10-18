@@ -219,7 +219,7 @@ def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name=
 		print('finding periods\n10------50-------100')
 		for y,progress in zip(range(state.shape[1]), np.array([['-']+['']*(state.shape[1]/20+1)]*20).flatten()[0:state.shape[1]]):
 			sys.stdout.write(progress); sys.stdout.flush()
-			for x in range(state.shape[2])[10:11]:
+			for x in range(state.shape[2]):
 				start_time=time.time()
 				if np.isfinite(np.nanmean(state[:,y,x])) and np.nanmean(state[:,y,x]) != state_id:
 					periods=optimized_period_identifier_1_state(state[:,y,x].copy(),state_id)
