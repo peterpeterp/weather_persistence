@@ -265,7 +265,7 @@ def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name=
 		ds_out.state_file = state_file
 
 
-		ds_out.write_nc(state_file.replace('.nc','_period-'+state_name+'.nc'))
+		ds_out.write_nc(state_file.replace('.nc','_period'+state_name+'.nc'))
 
 def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]},overwrite=True):
 	"""
