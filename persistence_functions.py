@@ -361,7 +361,7 @@ def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',p
 	da.Dataset({'state':state}).write_nc(out_file)
 	da.Dataset({'threshold':threshold}).write_nc(out_file.replace('_state','_threshold'))
 
-def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0.5,overwrite=True):
+def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,thresholds=[1,5,10],overwrite=True):
 	"""
 	Classifies daily precipitation into 'wet' and 'dry' days based on a `threshold`
 
@@ -385,14 +385,13 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0
 
 	state=nc[var_name].squeeze().copy()*np.nan
 
-	state[pr>=threshold] = 1
-	state[pr<threshold] = -1
-	state[state**2!=1]=np.nan
+	for threshold in sorted(thresholds):
+		state[pr>=threshold] = threshold
 
-	#state.values=np.array(state.values,np.int)
+	state[pr<threshold] = -1
 
 	if overwrite: os.system('rm '+out_file)
-	state.description='dry (wet) days are days with precipiation below (above) '+str(threshold)+' and are saved as -1 (1)'
+	state.description='days are labeled by the threshold they exceeded. all days with lower precipitation than the smallest threshold are labeled by -1.'
 	da.Dataset({'state':state}).write_nc(out_file)
 
 def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=True):
@@ -422,6 +421,40 @@ def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=T
 	compound_state.description='warm-dry (cold-wet) days are saved as 1 (-1)'
 	da.Dataset({'state':compound_state}).write_nc(out_file)
 
+
+# def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0.5,overwrite=True):
+# 	"""
+# 	Classifies daily precipitation into 'wet' and 'dry' days based on a `threshold`
+#
+# 	Parameters
+# 	----------
+# 		anom_file: str
+# 			filepath of a daily precipitation file. The variable that is read in can be specified with `var_name`.
+# 		out_file: str
+# 			filepath of a state file
+# 		var_name: str
+# 			name of the variable read in `anom_file`
+# 		threshold: float,default=0.5
+# 			threshold used to differentiate between wet and dry days
+# 		unit_multiplier: float,default=1
+# 			factor to multiply daily precipiation with to get mm as units
+# 		overwrite: bool
+# 			overwrites existing files
+# 	"""
+# 	nc=da.read_nc(in_file)
+# 	pr=nc[var_name].squeeze()*unit_multiplier
+#
+# 	state=nc[var_name].squeeze().copy()*np.nan
+#
+# 	state[pr>=threshold] = 1
+# 	state[pr<threshold] = -1
+# 	state[state**2!=1]=np.nan
+#
+# 	#state.values=np.array(state.values,np.int)
+#
+# 	if overwrite: os.system('rm '+out_file)
+# 	state.description='dry (wet) days are days with precipiation below (above) '+str(threshold)+' and are saved as -1 (1)'
+# 	da.Dataset({'state':state}).write_nc(out_file)
 
 #
 # def optimized_period_identifier_old(ind):
