@@ -97,7 +97,7 @@ def optimized_period_identifier(ind):
 
 	return(pers)
 
-def optimized_period_identifier_1_state(ind,state):
+def optimized_period_identifier_1_state(ind,state=1):
 	"""
 	This function identifies persistent periods using collections. It isn't a straight foreward implementation but runs faster than :meth:`period_identifier`
 
@@ -168,7 +168,7 @@ def test_persistence(N):
 
 # test_persistence(100)
 
-def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name='lat', lon_name='lon', seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
+def get_persistence(state_file,states_to_analyze=['warm','cold'], lat_name='lat', lon_name='lon', seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}}):
 	"""
 	This function reads a state field created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index` and finds persistent periods for these statesself. It uses :meth:`optimized_period_identifier`
 
@@ -202,13 +202,8 @@ def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name=
 	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
 	mon_year_axis=np.array([yr+mn*0.01 for yr,mn in zip(year,month)])
 
-	state=np.ma.getdata(nc_in['state'].values.squeeze())
-	mask=np.ma.getmask(nc_in['state'].values.squeeze())
-	state[mask]=np.nan
-	print('state percentiles: ',np.nanpercentile(state,range(100)))
-
-
-	for state_id,state_name in states_to_analyze.items():
+	for state_name in states_to_analyze:
+		state = nc_in[state_name].values
 		period_length=state.copy()*np.nan
 		period_midpoints=state.copy()*np.nan
 		period_season=state.copy()*np.nan
@@ -221,8 +216,8 @@ def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name=
 			sys.stdout.write(progress); sys.stdout.flush()
 			for x in range(state.shape[2]):
 				start_time=time.time()
-				if np.isfinite(np.nanmean(state[:,y,x])) and np.nanmean(state[:,y,x]) != state_id:
-					periods=optimized_period_identifier_1_state(state[:,y,x].copy(),state_id)
+				if np.nanmean(state[:,y,x]) not in [0,1]:
+					periods=optimized_period_identifier_1_state(state[:,y,x].copy())
 					identified_periods=np.where(periods!=0)[0]
 					per_num=len(identified_periods)
 					period_number.append(per_num)
@@ -244,7 +239,7 @@ def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name=
 
 		ds_out['period_length'] = da.DimArray(period_length[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('i2'))
 		ds_out['period_length'].units = 'days'
-		ds_out['period_length'].state_description=nc_in['state'].description
+		ds_out['period_length'].state_description=nc_in[state_name].description
 		ds_out['period_length'].analyzed_states=str(states_to_analyze)
 
 		ds_out['period_midpoints'] = da.DimArray(period_midpoints[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('f'))
@@ -267,7 +262,7 @@ def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name=
 
 		ds_out.write_nc(state_file.replace('_state.nc','_period_'+state_name+'.nc'))
 
-def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]},overwrite=True):
+def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]}):
 	"""
 	Classifies daily temperature anomalies into 'cold' and 'warm' days using the season and grid-cell specific median as threshold
 
@@ -300,12 +295,76 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 		seasonal_median=np.nanmedian(anom.ix[days_in_season,:,:],axis=0)
 		anom.ix[days_in_season,:,:]-=seasonal_median
 
-	state[anom>=0] = 1
-	state[anom<0] = -1
+	out = {}
+	state=anom.copy(); state[:] = False
+	state[anom>=0] = True
+	out['warm'] = da.DimArray( np.array(state.values, dtype=np.byte), axes=state.axes, dims=state.dims, dtype=np.byte)
+	out['warm'].description='days with values temperature above seasonal and grid-cell specific median'
+	state=anom.copy(); state[:] = False
+	state[anom<0] = True
+	out['cold'] = da.DimArray( np.array(state.values, dtype=np.byte), axes=state.axes, dims=state.dims, dtype=np.byte)
+	out['cold'].description='days with values temperature below seasonal and grid-cell specific median'
+	da.Dataset(out).write_nc(out_file)
 
-	if overwrite: os.system('rm '+out_file)
-	state.description='daily anomalies - seasonal medain of daily anomalies at grid cell level. positive anomalies -> 1 negative anomalies -> -1'
-	da.Dataset({'state':state}).write_nc(out_file)
+
+def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1, states={'dry':{'mod':'below','threshold':1}, 'wet':{'mod':'above','threshold':1}, '5mm':{'mod':'above','threshold':5}, '10mm':{'mod':'above','threshold':10}}):
+	"""
+	Classifies daily precipitation into 'wet' and 'dry' days based on a `threshold`
+
+	Parameters
+	----------
+		anom_file: str
+			filepath of a daily precipitation file. The variable that is read in can be specified with `var_name`.
+		out_file: str
+			filepath of a state file
+		var_name: str
+			name of the variable read in `anom_file`
+		threshold: float,default=0.5
+			threshold used to differentiate between wet and dry days
+		unit_multiplier: float,default=1
+			factor to multiply daily precipiation with to get mm as units
+		overwrite: bool
+			overwrites existing files
+	"""
+	nc=da.read_nc(in_file)
+	pr=nc[var_name].squeeze()*unit_multiplier
+
+	out = {}
+	for name,state_dict in states.items():
+		state=nc[var_name].squeeze().copy(); state[:] = False
+		if state_dict['mod'] == 'above':
+			state[pr>=state_dict['threshold']] = True
+		if state_dict['mod'] == 'below':
+			state[pr<=state_dict['threshold']] = True
+		out[name] = da.DimArray( np.array(state.values, dtype=np.byte), axes=state.axes, dims=state.dims, dtype=np.byte)
+		out[name].description='days with precipitation '+state_dict['mod']+' '+str(state_dict['threshold']+'mm')
+	da.Dataset(out).write_nc(out_file)
+
+def compound_precip_temp_index(combinations,out_file):
+	"""
+	Not documented yet
+	"""
+
+	out={}
+
+	for name,conditions in combinations.items():
+		conds=[]
+		description=[]
+		for condition in conditions:
+			nc=da.read_nc(condition[0])
+			conds.append(nc[condition[1]].squeeze())
+			description.append(nc[condition[1]].description)
+
+		compound_state = conds[0].copy(); compound_state[:] = False
+		for cond in conds:
+			compound_state += cond
+
+		compound_state/=len(conds)
+		out[name] = da.DimArray( np.array(compound_state.values, dtype=np.byte), axes=compound_state.axes, dims=compound_state.dims, dtype=np.byte)
+		out[name].description=' AND '.join(description)
+
+	da.Dataset(out).write_nc(out_file)
+
 
 def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',percentile_multiplier=1, unit_multiplier=86400, overwrite=True):
 	"""
@@ -361,65 +420,172 @@ def precip_to_index_percentile(in_file,out_file,percentile_field,var_name='pr',p
 	da.Dataset({'state':state}).write_nc(out_file)
 	da.Dataset({'threshold':threshold}).write_nc(out_file.replace('_state','_threshold'))
 
-def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,thresholds=[1,5,10],overwrite=True):
-	"""
-	Classifies daily precipitation into 'wet' and 'dry' days based on a `threshold`
 
+def temp_anomaly_to_ind_old(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11],'DJF':[12,1,2]},overwrite=True):
+	"""
+	Classifies daily temperature anomalies into 'cold' and 'warm' days using the season and grid-cell specific median as threshold
 	Parameters
 	----------
 		anom_file: str
-			filepath of a daily precipitation file. The variable that is read in can be specified with `var_name`.
+			filepath of a temperature anomalies file. The variable that is read in can be specified with `var_name`.
 		out_file: str
 			filepath of a state file
 		var_name: str
 			name of the variable read in `anom_file`
-		threshold: float,default=0.5
-			threshold used to differentiate between wet and dry days
-		unit_multiplier: float,default=1
-			factor to multiply daily precipiation with to get mm as units
+		seasons: dict, default=`{'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}}``
+			dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use `seasons={'year':{'months':range(12),'index':0}}`
 		overwrite: bool
 			overwrites existing files
 	"""
-	nc=da.read_nc(in_file)
-	pr=nc[var_name].squeeze()*unit_multiplier
+	nc=da.read_nc(anom_file)
+	if 'calendar' in nc['time'].attrs.keys():
+		datevar=num2date(nc['time'].values,units = nc['time'].units, calendar = nc['time'].calendar)
+	else:
+		datevar=num2date(nc['time'].values,units = nc['time'].units)
+	month=np.array([date.month for date in datevar])
+
+	anom=nc[var_name].squeeze()
 
 	state=nc[var_name].squeeze().copy()*np.nan
 
-	for threshold in sorted(thresholds):
-		state[pr>=threshold] = threshold
+	for season in seasons.keys():
+		days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
+		seasonal_median=np.nanmedian(anom.ix[days_in_season,:,:],axis=0)
+		anom.ix[days_in_season,:,:]-=seasonal_median
 
-	state[pr<threshold] = -1
+	state[anom>=0] = 1
+	state[anom<0] = -1
 
 	if overwrite: os.system('rm '+out_file)
-	state.description='days are labeled by the threshold they exceeded. all days with lower precipitation than the smallest threshold are labeled by -1.'
+	state.description='daily anomalies - seasonal medain of daily anomalies at grid cell level. positive anomalies -> 1 negative anomalies -> -1'
 	da.Dataset({'state':state}).write_nc(out_file)
 
-def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=True):
-	"""
-	Not documented yet
-	"""
 
-	# tas_state=da.read_nc(tas_state_file)['state']
-	# pr_state=da.read_nc(pr_state_file)['state']
-	# print(np.nanpercentile(tas_state,range(100)))
-	# print(np.nanpercentile(pr_state,range(100)))
+# def compound_precip_temp_index(tas_state_file,pr_state_file,out_file,overwrite=True):
+# 	"""
+# 	Not documented yet
+# 	"""
+#
+# 	# tas_state=da.read_nc(tas_state_file)['state']
+# 	# pr_state=da.read_nc(pr_state_file)['state']
+# 	# print(np.nanpercentile(tas_state,range(100)))
+# 	# print(np.nanpercentile(pr_state,range(100)))
+#
+# 	nc=da.read_nc(tas_state_file)
+# 	tas_state=nc['state'].squeeze()
+#
+# 	nc=da.read_nc(pr_state_file)
+# 	pr_state=nc['state'].squeeze()
+#
+# 	compound_state = tas_state.copy()+pr_state.copy()*10
+# 	print(np.nanpercentile(compound_state,range(100)))
+# 	compound_state[compound_state==-9] = 1
+# 	compound_state[compound_state==9] = -1
+# 	compound_state[compound_state**2!=1]=np.nan
+#
+#
+# 	if overwrite: os.system('rm '+out_file)
+# 	compound_state.description='warm-dry (cold-wet) days are saved as 1 (-1)'
+# 	da.Dataset({'state':compound_state}).write_nc(out_file)
 
-	nc=da.read_nc(tas_state_file)
-	tas_state=nc['state'].squeeze()
-
-	nc=da.read_nc(pr_state_file)
-	pr_state=nc['state'].squeeze()
-
-	compound_state = tas_state.copy()+pr_state.copy()*10
-	print(np.nanpercentile(compound_state,range(100)))
-	compound_state[compound_state==-9] = 1
-	compound_state[compound_state==9] = -1
-	compound_state[compound_state**2!=1]=np.nan
-
-
-	if overwrite: os.system('rm '+out_file)
-	compound_state.description='warm-dry (cold-wet) days are saved as 1 (-1)'
-	da.Dataset({'state':compound_state}).write_nc(out_file)
+# def get_persistence(state_file,states_to_analyze={1:'warm',-1:'cold'}, lat_name='lat', lon_name='lon', seasons={'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}},overwrite=True):
+# 	"""
+# 	This function reads a state field created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index` and finds persistent periods for these statesself. It uses :meth:`optimized_period_identifier`
+#
+# 	Parameters
+# 	----------
+# 		state_file: str
+# 			filepath of a state file. This file needs to have a variable `'state'` with -1 and 1 for the two different states. This file can be created by :meth:`temp_anomaly_to_ind` or :meth:`precip_to_index`
+# 		out_file: str
+# 			filepath of a period file
+# 		seasons: dict, default=`{'MAM':{'months':[3,4,5],'index':0}, 'JJA':{'months':[6,7,8],'index':1}, 'SON':{'months':[9,10,11],'index':2}, 'DJF':{'months':[12,1,2],'index':3}}``
+# 			dictionnary used to cluster detected periods into seasons. If no seasonal analysis is required use `seasons={'year':{'months':range(12),'index':0}}`
+# 		overwrite: bool
+# 			overwrites existing files
+# 	"""
+#
+# 	nc_in=da.read_nc(state_file)
+# 	# handle time
+# 	time_axis=nc_in['time'].values
+# 	if 'calendar' in nc_in['time'].attrs.keys():
+# 		datevar = num2date(time_axis,units = nc_in['time'].units,calendar = nc_in['time'].calendar)
+# 	else:
+# 		datevar = num2date(time_axis,units = nc_in['time'].units)
+#
+# 	month=np.array([int(str(date).split("-")[1])	for date in datevar[:]])
+# 	year=np.array([int(str(date).split("-")[0])	for date in datevar[:]])
+#
+# 	season=month.copy()*np.nan
+# 	for sea in seasons.keys():
+# 		season[np.where((month==seasons[sea]['months'][0]) | (month==seasons[sea]['months'][1]) | (month==seasons[sea]['months'][2]) )[0]]=seasons[sea]['index']
+#
+# 	monthly_index=np.array([mon+yr*12 for mon,yr in zip(month-1,year-np.min(year))])
+# 	mon_year_axis=np.array([yr+mn*0.01 for yr,mn in zip(year,month)])
+#
+# 	state=np.ma.getdata(nc_in['state'].values.squeeze())
+# 	mask=np.ma.getmask(nc_in['state'].values.squeeze())
+# 	state[mask]=np.nan
+# 	print('state percentiles: ',np.nanpercentile(state,range(100)))
+#
+#
+# 	for state_id,state_name in states_to_analyze.items():
+# 		period_length=state.copy()*np.nan
+# 		period_midpoints=state.copy()*np.nan
+# 		period_season=state.copy()*np.nan
+# 		period_monthly_index=state.copy()*np.nan
+# 		gc.collect()
+#
+# 		period_number=[]
+# 		print('finding periods\n10------50-------100')
+# 		for y,progress in zip(range(state.shape[1]), np.array([['-']+['']*(state.shape[1]/20+1)]*20).flatten()[0:state.shape[1]]):
+# 			sys.stdout.write(progress); sys.stdout.flush()
+# 			for x in range(state.shape[2]):
+# 				start_time=time.time()
+# 				if np.isfinite(np.nanmean(state[:,y,x])) and np.nanmean(state[:,y,x]) != state_id:
+# 					periods=optimized_period_identifier_1_state(state[:,y,x].copy(),state_id)
+# 					identified_periods=np.where(periods!=0)[0]
+# 					per_num=len(identified_periods)
+# 					period_number.append(per_num)
+#
+# 					period_length[0:per_num,y,x]=periods[identified_periods]
+# 					period_midpoints[0:per_num,y,x]=time_axis[identified_periods]
+# 					period_season[0:per_num,y,x]=season[identified_periods]
+# 					period_monthly_index[0:per_num,y,x]=monthly_index[identified_periods]
+# 				gc.collect()
+#
+# 		per_num=max(period_number)
+# 		ds_out = da.Dataset({})
+#
+# 		for name in [lon_name,lat_name]:
+# 			tmp = nc_in[name]
+# 			for key,val in nc_in[name].attrs.items():
+# 				tmp.attrs[key] = val
+# 			ds_out[name] = tmp
+#
+# 		ds_out['period_length'] = da.DimArray(period_length[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('i2'))
+# 		ds_out['period_length'].units = 'days'
+# 		ds_out['period_length'].state_description=nc_in['state'].description
+# 		ds_out['period_length'].analyzed_states=str(states_to_analyze)
+#
+# 		ds_out['period_midpoints'] = da.DimArray(period_midpoints[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('f'))
+# 		ds_out['period_midpoints'].description = 'midpoint of period based on time axis in state-file'
+# 		ds_out['period_midpoints'].units = nc_in['time'].units
+# 		if 'calendar' in nc_in['time'].attrs.keys():
+# 			ds_out['period_midpoints'].calendar = nc_in['time'].calendar
+#
+# 		ds_out['period_season'] = da.DimArray(period_season[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('i1'))
+# 		ds_out['period_season'].description = str(seasons)
+# 		ds_out['period_season'].long_name = 'season in which the midpoint of period is located'
+#
+# 		ds_out['period_monthly_index'] = da.DimArray(period_monthly_index[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('i2'))
+# 		ds_out['period_monthly_index'].description = 'monthly index 0 to number of years * 12 (based on time axis of state-file)'
+# 		ds_out['period_monthly_index'].first_time_step = str(year[0])+' - '+str(min(month))
+# 		ds_out['period_monthly_index'].last_time_step = str(year[-1])+' - '+str(max(month))
+#
+# 		ds_out.state_file = state_file
+#
+#
+# 		ds_out.write_nc(state_file.replace('_state.nc','_period_'+state_name+'.nc'))
 
 
 # def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1,threshold=0.5,overwrite=True):
