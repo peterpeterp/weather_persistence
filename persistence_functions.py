@@ -221,6 +221,12 @@ def get_persistence(state_file,states_to_analyze=['warm','cold'], lat_name='lat'
 				if np.nanmean(state[:,y,x]) not in [0,1]:
 					periods=optimized_period_identifier_1_state(state[:,y,x].copy())
 					identified_periods=np.where(periods!=0)[0]
+
+					print('************')
+					print(state[:,y,x][:100])
+					print(periods[:100])
+
+
 					per_num=len(identified_periods)
 					period_number.append(per_num)
 
