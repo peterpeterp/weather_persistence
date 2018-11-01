@@ -222,11 +222,6 @@ def get_persistence(state_file,states_to_analyze=['warm','cold'], lat_name='lat'
 					periods=optimized_period_identifier_1_state(np.array(state[:,y,x],dtype=np.float).copy())
 					identified_periods=np.where(periods!=0)[0]
 
-					print('************')
-					print(state[:,y,x][:100])
-					print(periods[:100])
-
-
 					per_num=len(identified_periods)
 					period_number.append(per_num)
 
