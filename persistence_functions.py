@@ -337,7 +337,7 @@ def precip_to_index(in_file,out_file,var_name='pr',unit_multiplier=1, states={'d
 		if state_dict['mod'] == 'below':
 			state[pr<=state_dict['threshold']] = True
 		out[name] = da.DimArray( np.array(state.values, dtype=np.byte), axes=state.axes, dims=state.dims, dtype=np.byte)
-		out[name].description='days with precipitation '+state_dict['mod']+' '+str(state_dict['threshold']+'mm')
+		out[name].description='days with precipitation '+state_dict['mod']+' '+str(state_dict['threshold'])+'mm'
 	da.Dataset(out).write_nc(out_file)
 
 def compound_precip_temp_index(combinations,out_file):
