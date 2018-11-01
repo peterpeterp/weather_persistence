@@ -239,22 +239,22 @@ def get_persistence(state_file,states_to_analyze=['warm','cold'], lat_name='lat'
 				tmp.attrs[key] = val
 			ds_out[name] = tmp
 
-		ds_out['period_length'] = da.DimArray(period_length[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('i2'))
+		ds_out['period_length'] = da.DimArray(period_length[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id',lat_name,lon_name], dtype=np.dtype('i2'))
 		ds_out['period_length'].units = 'days'
 		ds_out['period_length'].state_description=nc_in[state_name].description
 		ds_out['period_length'].analyzed_states=str(states_to_analyze)
 
-		ds_out['period_midpoints'] = da.DimArray(period_midpoints[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('f'))
+		ds_out['period_midpoints'] = da.DimArray(period_midpoints[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id',lat_name,lon_name], dtype=np.dtype('f'))
 		ds_out['period_midpoints'].description = 'midpoint of period based on time axis in state-file'
 		ds_out['period_midpoints'].units = nc_in['time'].units
 		if 'calendar' in nc_in['time'].attrs.keys():
 			ds_out['period_midpoints'].calendar = nc_in['time'].calendar
 
-		ds_out['period_season'] = da.DimArray(period_season[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('i1'))
+		ds_out['period_season'] = da.DimArray(period_season[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id',lat_name,lon_name], dtype=np.dtype('i1'))
 		ds_out['period_season'].description = str(seasons)
 		ds_out['period_season'].long_name = 'season in which the midpoint of period is located'
 
-		ds_out['period_monthly_index'] = da.DimArray(period_monthly_index[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id','lat','lon'], dtype=np.dtype('i2'))
+		ds_out['period_monthly_index'] = da.DimArray(period_monthly_index[0:per_num,:,:], axes=[np.asarray(range(per_num),dtype=np.dtype('i2')),nc_in[lat_name].values,nc_in[lon_name].values], dims=['period_id',lat_name,lon_name], dtype=np.dtype('i2'))
 		ds_out['period_monthly_index'].description = 'monthly index 0 to number of years * 12 (based on time axis of state-file)'
 		ds_out['period_monthly_index'].first_time_step = str(year[0])+' - '+str(min(month))
 		ds_out['period_monthly_index'].last_time_step = str(year[-1])+' - '+str(max(month))
