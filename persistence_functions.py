@@ -132,8 +132,8 @@ def optimized_period_identifier_1_state(ind,state=1):
 	# correct start
 	if ind_tmp[0]==0 and ind_tmp[1]==1:	pers[0]=1
 	if ind_tmp[0]==0 and ind_tmp[1]==0:
-		if len(np.where(pers>0)[0])>0:
-			pers[np.where(pers>0)[0][0]]+=1
+		#if len(np.where(pers>0)[0])>0:
+		pers[np.where(pers>0)[0][0]]+=1
 
 	return(pers)
 
@@ -260,7 +260,6 @@ def get_persistence(state_file,states_to_analyze=['warm','cold'], lat_name='lat'
 		ds_out['period_monthly_index'].last_time_step = str(year[-1])+' - '+str(max(month))
 
 		ds_out.state_file = state_file
-
 
 		ds_out.write_nc(state_file.replace('_state.nc','_period_'+state_name+'.nc'))
 
