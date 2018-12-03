@@ -292,14 +292,16 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 
 	state=nc[var_name].squeeze().copy()*np.nan
 
+	out = {}
 	for season in seasons.keys():
 		days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
 		seasonal_median=np.nanmedian(anom.ix[days_in_season,:,:],axis=0)
+		out['threshold_'+season] = da.DimArray(np.nanmedian(anom.ix[days_in_season,:,:],axis=0), axes=[state.lat,state.lon], dims=['lat','lon'], dtype=np.long)
 		anom.ix[days_in_season,:,:]-=seasonal_median
 
-	out = {}
 	state=anom.copy(); state[:] = False
 	state[anom>=0] = True
+
 	out['warm'] = da.DimArray( np.array(state.values, dtype=np.byte), axes=state.axes, dims=state.dims, dtype=np.byte)
 	out['warm'].description='days with values temperature above seasonal and grid-cell specific median'
 	state=anom.copy(); state[:] = False
