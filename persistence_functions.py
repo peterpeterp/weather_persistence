@@ -296,7 +296,7 @@ def temp_anomaly_to_ind(anom_file,out_file,var_name='tas',seasons={'MAM':[3,4,5]
 	for season in seasons.keys():
 		days_in_season=np.where( (month==seasons[season][0]) | (month==seasons[season][1]) | (month==seasons[season][2]) )[0]
 		seasonal_median=np.nanmedian(anom.ix[days_in_season,:,:],axis=0)
-		out['threshold_'+season] = da.DimArray(np.nanmedian(anom.ix[days_in_season,:,:],axis=0), axes=state.axes[1:], dims=state.dims[1:], dtype=np.long)
+		out['threshold_'+season] = da.DimArray(np.nanmedian(anom.ix[days_in_season,:,:],axis=0), axes=state.axes[1:], dims=state.dims[1:], dtype=np.float)
 		anom.ix[days_in_season,:,:]-=seasonal_median
 
 	state=anom.copy(); state[:] = False
